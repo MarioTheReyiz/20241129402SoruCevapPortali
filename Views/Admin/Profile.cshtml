@@ -1,0 +1,30 @@
+﻿@model _20241129402SoruCevapPortali.Models.User
+@{
+    ViewData["Title"] = "Profil"; Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">Profil Bilgileri</div>
+            <div class="card-body">
+                <div class="text-center mb-3">
+                    <img src="~/img/undraw_profile.svg" class="rounded-circle" width="100" />
+                    <h5 class="mt-2">@Model.Username</h5>
+                </div>
+                <form method="post">
+                    <input type="hidden" asp-for="Id" />
+                    <div class="mb-3">
+                        <label>Kullanıcı Adı</label>
+                        <input type="text" asp-for="Username" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label>Şifre</label>
+                        <input type="text" asp-for="Password" class="form-control" required />
+                    </div>
+                    <button class="btn btn-primary w-100">Güncelle</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

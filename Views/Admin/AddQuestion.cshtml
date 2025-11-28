@@ -1,0 +1,23 @@
+﻿@model _20241129402SoruCevapPortali.Models.Question
+@{
+    ViewData["Title"] = "Yeni Soru"; Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="card shadow p-4">
+    <h4 class="mb-3">Yeni Soru Ekle</h4>
+    <form method="post">
+        <div class="mb-3">
+            <label>Başlık</label>
+            <input type="text" name="Title" class="form-control" required />
+        </div>
+        <div class="mb-3">
+            <label>Kategori</label>
+            @Html.DropDownList("CategoryId", (SelectList)ViewBag.Categories, new { @class = "form-control" })
+        </div>
+        <div class="mb-3">
+            <label>İçerik</label>
+            <textarea name="Content" class="form-control" rows="5" required></textarea>
+        </div>
+        <button class="btn btn-primary">Kaydet</button>
+    </form>
+</div>

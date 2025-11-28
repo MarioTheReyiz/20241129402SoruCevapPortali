@@ -1,0 +1,42 @@
+﻿@model List<_20241129402SoruCevapPortali.Models.Question>
+@{
+    ViewData["Title"] = "Sorular"; Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex justify-content-between">
+        <h6 class="m-0 font-weight-bold text-primary">Soru Yönetimi</h6>
+        <a href="/Admin/AddQuestion" class="btn btn-success btn-sm">+ Yeni Soru</a>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered" width="100%">
+                <thead><tr><th>ID</th><th>Başlık</th><th>İçerik</th><th>Tarih</th><th>İşlem</th></tr></thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr id="row_@item.Id">
+                            <td>@item.Id</td>
+                            <td>@item.Title</td>
+                            <td>@(item.Content.Length > 30 ? item.Content.Substring(0, 30) + "..." : item.Content)</td>
+                            <td>@item.CreatedDate.ToShortDateString()</td>
+                            <td>
+                                <a href="/Admin/EditQuestion/@item.Id" class="btn btn-warning btn-sm">Düzenle</a>
+                                <button class="btn btn-danger btn-sm btn-del" data-id="@item.Id">Sil</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+@section Scripts {
+    <script>
+        $(".btn-del").click(function(){
+            var id = $(this).data("id");
+            if(confirm("Silmek istiyor musunuz?"))
+                $.post("/Admin/DeleteQuestion", {id:id}, function(r){ if(r.success) $("#row_"+id).remove(); });
+        });
+    </script>
+}

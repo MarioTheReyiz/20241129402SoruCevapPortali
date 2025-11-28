@@ -1,29 +1,25 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using _20241129402SoruCevapPortali.Models;
 using _20241129402SoruCevapPortali.Repositories;
-using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace _20241129402SoruCevapPortali.Controllers
 {
     public class AdminController : Controller
     {
-        // Tüm Repository'leri içeri alıyoruz
         private readonly IRepository<Category> _categoryRepo;
         private readonly IRepository<Question> _questionRepo;
         private readonly IRepository<User> _userRepo;
         private readonly IRepository<Answer> _answerRepo;
 
-        public AdminController(IRepository<Category> categoryRepo, IRepository<Question> questionRepo, IRepository<User> userRepo, IRepository<Answer> answerRepo)
+        public AdminController(IRepository<Category> c, IRepository<Question> q, IRepository<User> u, IRepository<Answer> a)
         {
-            _categoryRepo = categoryRepo;
-            _questionRepo = questionRepo;
-            _userRepo = userRepo;
-            _answerRepo = answerRepo;
+            _categoryRepo = c; _questionRepo = q; _userRepo = u; _answerRepo = a;
         }
 
         public IActionResult Index() => View();
 
-        // --- 1. KATEGORİ YÖNETİMİ ---
+        // --- KATEGORİLER ---
         public IActionResult Categories() => View(_categoryRepo.GetAll());
 
         [HttpPost]
@@ -41,7 +37,18 @@ namespace _20241129402SoruCevapPortali.Controllers
             return Json(new { success = false });
         }
 
-        // --- 2. SORU YÖNETİMİ (Listeleme, Ekleme, Düzenleme, Silme) ---
+        // --- KULLANICILAR ---
+        public IActionResult Users() => View(_userRepo.GetAll());
+
+        [HttpPost]
+        public IActionResult DeleteUser(int id)
+        {
+            var item = _userRepo.GetById(id);
+            if (item != null) { _userRepo.Delete(item); return Json(new { success = true }); }
+            return Json(new { success = false });
+        }
+
+        // --- SORULAR (Ekle, Düzenle, Sil) ---
         public IActionResult Questions() => View(_questionRepo.GetAll());
 
         [HttpPost]
@@ -52,35 +59,6 @@ namespace _20241129402SoruCevapPortali.Controllers
             return Json(new { success = false });
         }
 
-        // Soru Düzenleme Sayfasını Getir
-        [HttpGet]
-        public IActionResult EditQuestion(int id)
-        {
-            var question = _questionRepo.GetById(id);
-            if (question == null) return RedirectToAction("Questions");
-
-            // Kategorileri Dropdown için hazırla
-            ViewBag.Categories = new SelectList(_categoryRepo.GetAll(), "Id", "Name");
-            return View(question);
-        }
-
-        // Soru Düzenlemeyi Kaydet
-        [HttpPost]
-        public IActionResult EditQuestion(Question p)
-        {
-            var existing = _questionRepo.GetById(p.Id);
-            if (existing != null)
-            {
-                existing.Title = p.Title;
-                existing.Content = p.Content;
-                existing.CategoryId = p.CategoryId;
-                existing.IsApproved = p.IsApproved;
-                _questionRepo.Update(existing); // Repository'de Update metodu olmalı
-            }
-            return RedirectToAction("Questions");
-        }
-
-        // Yeni Soru Ekleme Sayfası
         [HttpGet]
         public IActionResult AddQuestion()
         {
@@ -91,35 +69,39 @@ namespace _20241129402SoruCevapPortali.Controllers
         [HttpPost]
         public IActionResult AddQuestion(Question p)
         {
-            // Admin eklediği için onaylı olsun ve adminin ID'si atansın (Varsayılan Admin ID: 1 kabul ettik)
-            p.UserId = 1;
             p.CreatedDate = DateTime.Now;
             p.IsApproved = true;
+            p.UserId = 1; // Varsayılan Admin ID'si (Vize için yeterli)
             _questionRepo.Add(p);
             return RedirectToAction("Questions");
         }
 
-        // --- 3. KULLANICI YÖNETİMİ ---
-        public IActionResult Users()
+        [HttpGet]
+        public IActionResult EditQuestion(int id)
         {
-            var users = _userRepo.GetAll();
-            return View(users);
+            var q = _questionRepo.GetById(id);
+            if (q == null) return RedirectToAction("Questions");
+            ViewBag.Categories = new SelectList(_categoryRepo.GetAll(), "Id", "Name", q.CategoryId);
+            return View(q);
         }
 
         [HttpPost]
-        public IActionResult DeleteUser(int id)
+        public IActionResult EditQuestion(Question p)
         {
-            var item = _userRepo.GetById(id);
-            if (item != null) { _userRepo.Delete(item); return Json(new { success = true }); }
-            return Json(new { success = false });
+            var existing = _questionRepo.GetById(p.Id);
+            if (existing != null)
+            {
+                existing.Title = p.Title;
+                existing.Content = p.Content;
+                existing.CategoryId = p.CategoryId;
+                existing.IsApproved = p.IsApproved;
+                _questionRepo.Update(existing);
+            }
+            return RedirectToAction("Questions");
         }
 
-        // --- 4. CEVAP YÖNETİMİ ---
-        public IActionResult Answers()
-        {
-            var answers = _answerRepo.GetAll();
-            return View(answers);
-        }
+        // --- CEVAPLAR ---
+        public IActionResult Answers() => View(_answerRepo.GetAll());
 
         [HttpPost]
         public IActionResult DeleteAnswer(int id)
@@ -129,23 +111,22 @@ namespace _20241129402SoruCevapPortali.Controllers
             return Json(new { success = false });
         }
 
-        // --- 5. PROFİL SAYFASI ---
+        // --- PROFİL ---
         public IActionResult Profile()
         {
-            // Şimdilik ID'si 1 olan admini getiriyoruz
-            var admin = _userRepo.GetById(1);
+            var admin = _userRepo.GetById(1); // İlk kullanıcıyı getir
             return View(admin);
         }
 
         [HttpPost]
         public IActionResult Profile(User p)
         {
-            var existing = _userRepo.GetById(p.Id);
-            if (existing != null)
+            var user = _userRepo.GetById(p.Id);
+            if (user != null)
             {
-                existing.Username = p.Username;
-                existing.Password = p.Password; // Şifreyi günceller
-                _userRepo.Update(existing);
+                user.Username = p.Username;
+                user.Password = p.Password;
+                _userRepo.Update(user);
             }
             return RedirectToAction("Profile");
         }
