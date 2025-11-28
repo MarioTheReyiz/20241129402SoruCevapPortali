@@ -12,8 +12,8 @@ using _20241129402SoruCevapPortali.Models;
 namespace _20241129402SoruCevapPortali.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251128214940_CevapTablosu")]
-    partial class CevapTablosu
+    [Migration("20251128224804_Veri1")]
+    partial class Veri1
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
