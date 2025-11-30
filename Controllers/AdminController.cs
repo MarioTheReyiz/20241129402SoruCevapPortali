@@ -1,22 +1,41 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.Authorization;
 using _20241129402SoruCevapPortali.Models;
 using _20241129402SoruCevapPortali.Repositories;
 
 namespace _20241129402SoruCevapPortali.Controllers
 {
+    [Authorize(Roles = "Admin,Moderator")] // Güvenlik Kilidi: Sadece yetkililer girebilir
     public class AdminController : Controller
     {
+        // --- 1. DEĞİŞKENLERİ TANIMLA ---
         private readonly IRepository<Category> _categoryRepo;
         private readonly IRepository<Question> _questionRepo;
         private readonly IRepository<User> _userRepo;
         private readonly IRepository<Answer> _answerRepo;
+        private readonly IRepository<Log> _logRepo;
+        private readonly IRepository<Notification> _notificationRepo;
 
-        public AdminController(IRepository<Category> c, IRepository<Question> q, IRepository<User> u, IRepository<Answer> a)
+        // --- 2. CONSTRUCTOR (YAPICI METOT) ---
+        public AdminController(
+            IRepository<Category> c,
+            IRepository<Question> q,
+            IRepository<User> u,
+            IRepository<Answer> a,
+            IRepository<Log> logRepo,
+            IRepository<Notification> notificationRepo
+        )
         {
-            _categoryRepo = c; _questionRepo = q; _userRepo = u; _answerRepo = a;
+            _categoryRepo = c;
+            _questionRepo = q;
+            _userRepo = u;
+            _answerRepo = a;
+            _logRepo = logRepo;
+            _notificationRepo = notificationRepo;
         }
 
+        // --- DASHBOARD ---
         public IActionResult Index()
         {
             // 1. Toplam Kategori Sayısı
@@ -25,7 +44,7 @@ namespace _20241129402SoruCevapPortali.Controllers
             // 2. Sorularla İlgili İstatistikler
             var questions = _questionRepo.GetAll();
             ViewBag.TotalQuestions = questions.Count;
-            ViewBag.PendingQuestions = questions.Count(q => !q.IsApproved); // Onay bekleyenler
+            ViewBag.PendingQuestions = questions.Count(q => !q.IsApproved);
 
             // 3. Cevap Oranı Hesabı
             var answers = _answerRepo.GetAll();
@@ -33,7 +52,6 @@ namespace _20241129402SoruCevapPortali.Controllers
 
             if (totalQuestions > 0)
             {
-                // En az bir cevabı olan tekil soru sayısını buluyoruz
                 var answeredQuestionCount = answers.Select(a => a.QuestionId).Distinct().Count();
                 ViewBag.AnswerRate = (int)((double)answeredQuestionCount / totalQuestions * 100);
             }
@@ -45,13 +63,15 @@ namespace _20241129402SoruCevapPortali.Controllers
             return View();
         }
 
-        // --- KATEGORİLER ---
+        // --- KATEGORİ YÖNETİMİ ---
         public IActionResult Categories() => View(_categoryRepo.GetAll());
 
         [HttpPost]
         public IActionResult AddCategory(Category p)
         {
-            if (ModelState.IsValid) _categoryRepo.Add(p);
+            // Doğrudan ekleme yapıyoruz (Vize kolaylığı için validasyonu esnettim)
+            _categoryRepo.Add(p);
+            KayitTut("Kategori Eklendi", $"Yeni Kategori: {p.Name}");
             return RedirectToAction("Categories");
         }
 
@@ -59,29 +79,55 @@ namespace _20241129402SoruCevapPortali.Controllers
         public IActionResult DeleteCategory(int id)
         {
             var item = _categoryRepo.GetById(id);
-            if (item != null) { _categoryRepo.Delete(item); return Json(new { success = true }); }
+            if (item != null)
+            {
+                string ad = item.Name;
+                _categoryRepo.Delete(item);
+
+                // LOG EKLENDİ
+                KayitTut("Kategori Silindi", $"Silinen: {ad} (ID: {id})");
+
+                return Json(new { success = true });
+            }
             return Json(new { success = false });
         }
 
-        // --- KULLANICILAR ---
+        // --- KULLANICI YÖNETİMİ ---
         public IActionResult Users() => View(_userRepo.GetAll());
 
         [HttpPost]
         public IActionResult DeleteUser(int id)
         {
             var item = _userRepo.GetById(id);
-            if (item != null) { _userRepo.Delete(item); return Json(new { success = true }); }
+            if (item != null)
+            {
+                string kAdi = item.Username;
+                _userRepo.Delete(item);
+
+                // LOG EKLENDİ
+                KayitTut("Kullanıcı Silindi", $"Silinen: {kAdi} (ID: {id})");
+
+                return Json(new { success = true });
+            }
             return Json(new { success = false });
         }
 
-        // --- SORULAR (Ekle, Düzenle, Sil) ---
+        // --- SORU YÖNETİMİ ---
         public IActionResult Questions() => View(_questionRepo.GetAll());
 
         [HttpPost]
         public IActionResult DeleteQuestion(int id)
         {
             var item = _questionRepo.GetById(id);
-            if (item != null) { _questionRepo.Delete(item); return Json(new { success = true }); }
+            if (item != null)
+            {
+                _questionRepo.Delete(item);
+
+                // LOG EKLENDİ
+                KayitTut("Soru Silindi", $"Soru ID: {id} silindi.");
+
+                return Json(new { success = true });
+            }
             return Json(new { success = false });
         }
 
@@ -97,8 +143,11 @@ namespace _20241129402SoruCevapPortali.Controllers
         {
             p.CreatedDate = DateTime.Now;
             p.IsApproved = true;
-            p.UserId = 1; // Varsayılan Admin ID'si (Vize için yeterli)
+            p.UserId = 1; // Varsayılan Admin ID'si
+
             _questionRepo.Add(p);
+            KayitTut("Soru Eklendi", $"Başlık: {p.Title}");
+
             return RedirectToAction("Questions");
         }
 
@@ -122,34 +171,27 @@ namespace _20241129402SoruCevapPortali.Controllers
                 existing.CategoryId = p.CategoryId;
                 existing.IsApproved = p.IsApproved;
                 _questionRepo.Update(existing);
+
+                KayitTut("Soru Düzenlendi", $"ID: {p.Id} güncellendi.");
             }
             return RedirectToAction("Questions");
         }
 
-
-        // --- FORUM DETAYI (SORU VE CEVAPLARI GÖRME) ---
+        // --- FORUM DETAYI ---
         public IActionResult ForumDetails(int id)
         {
-            // 1. Soruyu Bul
             var question = _questionRepo.GetById(id);
             if (question == null) return RedirectToAction("Questions");
 
-            // Soruyu soran kullanıcıyı getir (Eğer User null geliyorsa)
             question.User = _userRepo.GetById(question.UserId);
 
-            // 2. Bu soruya ait cevapları filtrele
-            // Repository'de "Where" komutu direkt çalışmayabilir, o yüzden GetAll() ile çekip RAM'de filtreliyoruz (Vize için uygundur)
             var answers = _answerRepo.GetAll().Where(x => x.QuestionId == id).ToList();
-
-            // 3. Her cevabın yazarını (User) içine doldur
             foreach (var answer in answers)
             {
                 answer.User = _userRepo.GetById(answer.UserId);
             }
 
-            // Cevapları View'a taşımak için ViewBag kullanıyoruz
             ViewBag.Answers = answers;
-
             return View(question);
         }
 
@@ -160,7 +202,15 @@ namespace _20241129402SoruCevapPortali.Controllers
         public IActionResult DeleteAnswer(int id)
         {
             var item = _answerRepo.GetById(id);
-            if (item != null) { _answerRepo.Delete(item); return Json(new { success = true }); }
+            if (item != null)
+            {
+                _answerRepo.Delete(item);
+
+                // LOG EKLENDİ
+                KayitTut("Cevap Silindi", $"Cevap ID: {id} silindi.");
+
+                return Json(new { success = true });
+            }
             return Json(new { success = false });
         }
 
@@ -168,23 +218,16 @@ namespace _20241129402SoruCevapPortali.Controllers
         [HttpGet]
         public IActionResult Profile()
         {
-            // Giriş yapan kullanıcıyı ismine göre bul
             var username = User.Identity.Name;
             var user = _userRepo.GetAll().FirstOrDefault(x => x.Username == username);
-
-            // Eğer kimse yoksa (session koptuysa) yine de admini (Id=1) getir (hata vermesin diye)
             if (user == null) user = _userRepo.GetById(1);
-
             return View(user);
         }
 
         [HttpPost]
-        public async Task<IActionResult> Profile(User p, IFormFile? ImageFile) // IFormFile parametresi eklendi
+        public async Task<IActionResult> Profile(User p, IFormFile? ImageFile)
         {
-            // Giriş yapmış kullanıcıyı bul (İsimden)
             var currentUser = _userRepo.GetAll().FirstOrDefault(x => x.Username == User.Identity.Name);
-
-            // Eğer bulamazsa (ki bulmalı), ID ile gelen p.Id'ye bak
             var userToUpdate = currentUser ?? _userRepo.GetById(p.Id);
 
             if (userToUpdate != null)
@@ -193,43 +236,35 @@ namespace _20241129402SoruCevapPortali.Controllers
                 userToUpdate.Surname = p.Surname;
                 userToUpdate.Email = p.Email;
                 userToUpdate.PhoneNumber = p.PhoneNumber;
-                userToUpdate.Password = p.Password; // Şifreyi güncelle
+                userToUpdate.Password = p.Password;
 
-                // --- RESİM YÜKLEME İŞLEMİ ---
                 if (ImageFile != null)
                 {
-                    // Dosya uzantısını al (örn: .jpg)
                     var extension = Path.GetExtension(ImageFile.FileName);
-                    // Rastgele yeni bir isim ver (çakışma olmasın)
                     var newImageName = Guid.NewGuid() + extension;
-                    // Kaydedilecek yer: wwwroot/img/
                     var location = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/img/", newImageName);
 
-                    // Dosyayı kaydet
                     using (var stream = new FileStream(location, FileMode.Create))
                     {
                         await ImageFile.CopyToAsync(stream);
                     }
-
-                    // Veritabanına resim yolunu yaz
                     userToUpdate.PhotoUrl = "/img/" + newImageName;
                 }
-                // -----------------------------
 
                 _userRepo.Update(userToUpdate);
+                KayitTut("Profil Güncellendi", $"{userToUpdate.Username} bilgilerini güncelledi.");
             }
             return RedirectToAction("Profile");
         }
-        // --- RAPOR OLUŞTURMA (TXT İNDİRME) ---
+
+        // --- RAPOR İNDİRME ---
         public IActionResult ExportReport()
         {
-            // Verileri çekelim
             var categoryCount = _categoryRepo.GetAll().Count;
             var questions = _questionRepo.GetAll();
             var answerCount = _answerRepo.GetAll().Count;
             var userCount = _userRepo.GetAll().Count;
 
-            // Rapor içeriğini hazırlayalım
             var sb = new System.Text.StringBuilder();
             sb.AppendLine("==========================================");
             sb.AppendLine("   SORU CEVAP PORTALI - YÖNETİCİ RAPORU   ");
@@ -247,23 +282,59 @@ namespace _20241129402SoruCevapPortali.Controllers
             sb.AppendLine($"Onay Bekleyen Sorular   : {questions.Count(x => !x.IsApproved)}");
             sb.AppendLine("");
             sb.AppendLine("==========================================");
-            sb.AppendLine("Bu rapor sistem tarafından otomatik oluşturulmuştur.");
 
-            // Dosya haline getirip indir
             var content = System.Text.Encoding.UTF8.GetBytes(sb.ToString());
+
+            // LOG EKLENDİ
+            KayitTut("Rapor Alındı", "Yönetici raporu indirildi.");
+
             return File(content, "text/plain", $"Yonetim_Raporu_{DateTime.Now.ToString("ddMMyyyy")}.txt");
         }
-        // --- YETKİ YÖNETİMİ (SADECE ADMIN) ---
 
+        // --- BİLDİRİM YÖNETİMİ ---
+        [HttpGet]
+        public IActionResult SendNotification()
+        {
+            ViewBag.Users = new SelectList(_userRepo.GetAll(), "Id", "Username");
+            return View();
+        }
+
+        [HttpPost]
+        public IActionResult SendNotification(string message, string targetType, int? specificUserId)
+        {
+            var notif = new Notification
+            {
+                Message = message,
+                SenderName = User.Identity.Name,
+                Date = DateTime.Now
+            };
+
+            if (targetType == "SpecificUser" && specificUserId.HasValue)
+            {
+                notif.TargetUserId = specificUserId;
+                notif.TargetRole = "Private";
+            }
+            else
+            {
+                notif.TargetRole = targetType;
+            }
+
+            _notificationRepo.Add(notif);
+
+            // LOG EKLENDİ
+            KayitTut("Bildirim Gönderildi", $"Mesaj: {message} -> {targetType}");
+
+            return RedirectToAction("SendNotification", new { success = true });
+        }
+
+        // --- YETKİ YÖNETİMİ ---
         [HttpGet]
         public IActionResult RoleManagement()
         {
-            // GÜVENLİK KONTROLÜ: Sadece "Admin" girebilir!
             if (User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value != "Admin")
             {
-                return RedirectToAction("Index"); // Yetkisiz ise dashboard'a at
+                return RedirectToAction("Index");
             }
-
             var users = _userRepo.GetAll();
             return View(users);
         }
@@ -271,7 +342,6 @@ namespace _20241129402SoruCevapPortali.Controllers
         [HttpPost]
         public IActionResult UpdateRole(int id, string newRole)
         {
-            // GÜVENLİK KONTROLÜ: Sadece "Admin" değiştirebilir!
             if (User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value != "Admin")
             {
                 return Json(new { success = false, message = "Yetkiniz yok!" });
@@ -280,17 +350,62 @@ namespace _20241129402SoruCevapPortali.Controllers
             var user = _userRepo.GetById(id);
             if (user != null)
             {
-                // Kendi yetkini düşürmeyi engelle (Opsiyonel güvenlik)
                 if (user.Username == User.Identity.Name)
                 {
                     return Json(new { success = false, message = "Kendi yetkinizi değiştiremezsiniz." });
                 }
 
+                string eskiRol = user.Role;
                 user.Role = newRole;
                 _userRepo.Update(user);
+
+                // LOG EKLENDİ
+                KayitTut("Rol Değiştirildi", $"{user.Username}: {eskiRol} -> {newRole}");
+
                 return Json(new { success = true, message = "Rol güncellendi." });
             }
             return Json(new { success = false, message = "Kullanıcı bulunamadı." });
+        }
+
+        // --- SİSTEM KAYITLARI (LOGS) ---
+        public IActionResult Logs()
+        {
+            var logs = _logRepo.GetAll().OrderByDescending(x => x.Date).ToList();
+            return View(logs);
+        }
+
+        // --- LOG TUTMA YARDIMCISI ---
+        private void KayitTut(string islem, string detay)
+        {
+            var log = new Log
+            {
+                Username = User.Identity.IsAuthenticated ? User.Identity.Name : "Sistem",
+                Action = islem,
+                Details = detay,
+                Date = DateTime.Now
+            };
+            _logRepo.Add(log);
+        }
+        // --- TÜM BİLDİRİMLERİ GÖR ---
+        public IActionResult AllNotifications()
+        {
+            // 1. Benim Rolüm ve ID'm ne?
+            var username = User.Identity.Name;
+            var user = _userRepo.GetAll().FirstOrDefault(x => x.Username == username);
+            var myRole = user?.Role ?? "User";
+            var myId = user?.Id ?? 0;
+
+            // 2. Bana uygun bildirimleri getir (Sistemdeki tümü değil, sadece görmem gerekenler)
+            var myNotifs = _notificationRepo.GetAll()
+                .Where(n =>
+                    n.TargetRole == "All" ||
+                    n.TargetRole == myRole ||
+                    (n.TargetRole == "Private" && n.TargetUserId == myId)
+                )
+                .OrderByDescending(n => n.Date) // En yeni en üstte
+                .ToList();
+
+            return View(myNotifs);
         }
     }
 }

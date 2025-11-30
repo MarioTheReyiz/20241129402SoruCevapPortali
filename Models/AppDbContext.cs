@@ -11,6 +11,9 @@ namespace _20241129402SoruCevapPortali.Models
         public DbSet<Question> Questions { get; set; }
         public DbSet<Answer> Answers { get; set; }
 
+        public DbSet<Notification> Notifications { get; set; }
+        public DbSet<Log> Logs { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Answer>()
