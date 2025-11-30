@@ -29,19 +29,19 @@ namespace _20241129402SoruCevapPortali.Repositories
         public void Add(T entity)
         {
             _dbSet.Add(entity);
-            Save(); // EKSİK OLAN KISIM BUYDU: Ekleme yapınca hemen kaydet
+            _context.SaveChanges(); // EKSİK OLABİLİR
         }
 
         public void Update(T entity)
         {
             _dbSet.Update(entity);
-            Save(); // Güncelleyince hemen kaydet
+            _context.SaveChanges(); // İŞTE ŞİFREYİ KAYDETMEYEN KISIM BURASIYDI
         }
 
         public void Delete(T entity)
         {
             _dbSet.Remove(entity);
-            Save(); // Silince hemen kaydet
+            _context.SaveChanges(); // SİLME DE KAYDEDİLMELİ
         }
 
         public void Save()

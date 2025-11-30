@@ -90,5 +90,117 @@ namespace _20241129402SoruCevapPortali.Controllers
             // 4. Giriş sayfasına yönlendir
             return RedirectToAction("Login");
         }
+        // --- 1. E-POSTA GİRME VE KOD GÖNDERME ---
+        [HttpGet]
+        public IActionResult ForgotPassword() { return View(); }
+
+        [HttpPost]
+        public IActionResult ForgotPassword(string email)
+        {
+            var user = _userRepository.GetAll().FirstOrDefault(x => x.Email == email);
+            if (user == null)
+            {
+                ViewBag.Error = "Bu e-posta adresiyle kayıtlı kullanıcı bulunamadı.";
+                return View();
+            }
+
+            // 6 Haneli Rastgele Kod Üret
+            Random rnd = new Random();
+            string code = rnd.Next(100000, 999999).ToString();
+
+            // Veritabanına kaydet
+            user.ResetCode = code;
+            _userRepository.Update(user);
+
+            // E-posta Gönder (System.Net.Mail)
+            try
+            {
+                System.Net.Mail.SmtpClient client = new System.Net.Mail.SmtpClient("smtp.gmail.com", 587);
+                client.EnableSsl = true;
+                // DİKKAT: Buraya kendi e-posta ve uygulama şifreni yazmalısın!
+                client.Credentials = new System.Net.NetworkCredential("msdn7788@gmail.com", "myvl hevc stca jqrj");
+
+                System.Net.Mail.MailMessage mail = new System.Net.Mail.MailMessage();
+                mail.From = new System.Net.Mail.MailAddress("msdn7788@gmail.com", "Soru Cevap Portalı");
+                mail.To.Add(email);
+                mail.Subject = "Şifre Sıfırlama Kodu";
+                mail.Body = $"Merhaba {user.Name},<br>Şifre sıfırlama kodunuz: <h2>{code}</h2>";
+                mail.IsBodyHtml = true;
+
+                client.Send(mail);
+
+                TempData["ResetEmail"] = email; // Diğer sayfaya taşı
+                return RedirectToAction("VerifyCode");
+            }
+            catch (Exception ex)
+            {
+                ViewBag.Error = "E-posta gönderilemedi: " + ex.Message;
+                return View();
+            }
+        }
+
+        // --- 2. KODU DOĞRULAMA ---
+        [HttpGet]
+        public IActionResult VerifyCode()
+        {
+            if (TempData["ResetEmail"] == null) return RedirectToAction("ForgotPassword");
+            TempData.Keep("ResetEmail");
+            return View();
+        }
+
+        [HttpPost]
+        public IActionResult VerifyCode(string code)
+        {
+            string email = TempData["ResetEmail"]?.ToString();
+            var user = _userRepository.GetAll().FirstOrDefault(x => x.Email == email && x.ResetCode == code);
+
+            if (user != null)
+            {
+                TempData["ResetUserId"] = user.Id; // Doğrulandı, ID'yi sakla
+                return RedirectToAction("ResetPassword");
+            }
+
+            ViewBag.Error = "Hatalı kod girdiniz!";
+            TempData.Keep("ResetEmail");
+            return View();
+        }
+
+        // --- 3. YENİ ŞİFRE ---
+        [HttpGet]
+        public IActionResult ResetPassword()
+        {
+            if (TempData["ResetUserId"] == null) return RedirectToAction("ForgotPassword");
+            return View();
+        }
+
+        [HttpPost]
+        public IActionResult ResetPassword(string newPassword)
+        {
+            // --- HATA ÇÖZÜMÜ BURADA ---
+            // TempData'nın dolu olup olmadığını kontrol ediyoruz.
+            if (TempData["ResetUserId"] == null)
+            {
+                // Eğer hafıza silinmişse (sayfa yenilendiğinde vs.), güvenlik için en başa gönderiyoruz.
+                ViewBag.Error = "Oturum süresi doldu, lütfen tekrar deneyin.";
+                return RedirectToAction("ForgotPassword");
+            }
+
+            int userId = (int)TempData["ResetUserId"];
+            var user = _userRepository.GetById(userId);
+
+            if (user != null)
+            {
+                user.Password = newPassword;
+                user.ResetCode = null; // Kullanılan kodu temizle (Güvenlik için)
+                _userRepository.Update(user);
+
+                // Başarılı olursa giriş sayfasına yönlendir
+                return RedirectToAction("Login");
+            }
+
+            // Kullanıcı bulunamazsa
+            ViewBag.Error = "Kullanıcı bulunamadı.";
+            return View();
+        }
     }
 }

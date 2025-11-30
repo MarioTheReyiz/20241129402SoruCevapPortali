@@ -208,6 +208,24 @@
                             </div>
                         </li>
 
+                        <li class="nav-item dropdown no-arrow mx-1">
+                            <a class="nav-link dropdown-toggle" href="#" id="themeDropdown" role="button" data-toggle="dropdown">
+                                <i class="fas fa-palette fa-fw"></i>
+                            </a>
+                            <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in">
+                                <h6 class="dropdown-header">Tema Rengi Seç</h6>
+                                <a class="dropdown-item" href="#" onclick="changeTheme(0)">🔵 Orijinal (Mavi)</a>
+
+                                <a class="dropdown-item" href="#" onclick="changeTheme(45)">🟣 Mor</a>
+
+                                <a class="dropdown-item" href="#" onclick="changeTheme(135)">🔴 Kırmızı</a>
+
+                                <a class="dropdown-item" href="#" onclick="changeTheme(165)">🟠 Turuncu</a>
+
+                                <a class="dropdown-item" href="#" onclick="changeTheme(255)">🟢 Yeşil</a>
+                            </div>
+                        </li>
+
                     </ul>
                 </nav>
                 <div class="container-fluid">
@@ -240,6 +258,43 @@
     <script src="~/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
     <script src="~/vendor/jquery-easing/jquery.easing.min.js"></script>
     <script src="~/js/sb-admin-2.min.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            // Çan ikonuna tıklanınca
+            $("#alertsDropdown").click(function() {
+                // Kırmızı sayıyı (badge) anında gizle
+                $(".badge-counter").hide();
+
+                // Sunucuya "Okundu" bilgisini gönder
+                $.post("/Admin/MarkNotificationsAsRead", function(data) {
+                    console.log("Bildirimler okundu işaretlendi.");
+                });
+            });
+        });
+    </script>
+
+
+    <script>
+        function changeTheme(hue) {
+            if (hue === 0) {
+                document.documentElement.style.filter = "none";
+                localStorage.removeItem("siteTheme");
+                return;
+            }
+            // Dereceyi uygula
+            var filterVal = "hue-rotate(" + hue + "deg)";
+            document.documentElement.style.filter = filterVal; // body yerine html'e uygularsak daha garanti olur
+            localStorage.setItem("siteTheme", hue);
+        }
+
+        $(document).ready(function() {
+            var savedTheme = localStorage.getItem("siteTheme");
+            if (savedTheme) {
+                document.documentElement.style.filter = "hue-rotate(" + savedTheme + "deg)";
+            }
+        });
+    </script>
 
     @await RenderSectionAsync("Scripts", required: false)
 

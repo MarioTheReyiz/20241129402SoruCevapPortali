@@ -21,9 +21,11 @@ namespace _20241129402SoruCevapPortali.Models
         public string? Email { get; set; }         // E-Posta
         public string? PhoneNumber { get; set; }   // Telefon
         public string PhotoUrl { get; set; } = "/img/undraw_profile.svg"; // Varsayılan Resim
+        public string? ResetCode { get; set; } // Şifre sıfırlama kodu için
 
         // İLİŞKİLER (Boş olabilir - Nullable)
         public List<Question>? Questions { get; set; }
         public List<Answer>? Answers { get; set; }
+
     }
 }

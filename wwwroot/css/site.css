@@ -20,3 +20,39 @@ html {
 body {
   margin-bottom: 60px;
 }
+
+/* --- ANA TEMA RENGÝNÝ DEÐÝÞTÝRME (Örn: Koyu Mor) --- */
+
+/* 1. Sol Menü ve Arka Plan Gradyaný */
+.bg-gradient-primary {
+    background-color: #4e73df; /* Yedek renk */
+    background-image: linear-gradient(180deg, #581b98 10%, #224abe 100%) !important; /* BURAYI DEÐÝÞTÝR */
+    background-size: cover;
+}
+
+/* 2. Butonlar */
+.btn-primary {
+    background-color: #581b98 !important; /* Mor */
+    border-color: #581b98 !important;
+}
+
+    .btn-primary:hover {
+        background-color: #400f75 !important; /* Üzerine gelince koyulaþsýn */
+        border-color: #400f75 !important;
+    }
+
+/* 3. Yazý Renkleri */
+.text-primary {
+    color: #581b98 !important;
+}
+
+/* 4. Kartlarýn Üst Çizgisi (Dashboard'daki) */
+.border-left-primary {
+    border-left: .25rem solid #581b98 !important;
+}
+
+/* 5. Sayfalama (Pagination) */
+.page-item.active .page-link {
+    background-color: #581b98 !important;
+    border-color: #581b98 !important;
+}

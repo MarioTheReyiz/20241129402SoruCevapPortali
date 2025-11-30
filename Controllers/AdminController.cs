@@ -407,5 +407,34 @@ namespace _20241129402SoruCevapPortali.Controllers
 
             return View(myNotifs);
         }
+        [HttpPost]
+        public IActionResult MarkNotificationsAsRead()
+        {
+            // Şu anki kullanıcının ID'sini ve Rolünü bul
+            var username = User.Identity.Name;
+            var user = _userRepo.GetAll().FirstOrDefault(x => x.Username == username);
+            if (user == null) return Json(new { success = false });
+
+            var myRole = user.Role;
+            var myId = user.Id;
+
+            // Bana gelen ve okunmamış bildirimleri bul
+            var unreadNotifs = _notificationRepo.GetAll()
+                .Where(n => !n.IsRead && (
+                    n.TargetRole == "All" ||
+                    n.TargetRole == myRole ||
+                    (n.TargetRole == "Private" && n.TargetUserId == myId)
+                )).ToList();
+
+            // Hepsini okundu yap
+            foreach (var item in unreadNotifs)
+            {
+                item.IsRead = true;
+                _notificationRepo.Update(item);
+            }
+
+            return Json(new { success = true });
+        }
+
     }
 }
