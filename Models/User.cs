@@ -7,18 +7,23 @@ namespace _20241129402SoruCevapPortali.Models
         [Key]
         public int Id { get; set; }
 
-        [Required]
-        [StringLength(50)]
+        [Required(ErrorMessage = "Kullanıcı adı zorunludur.")]
         public string Username { get; set; }
 
-        [Required]
+        [Required(ErrorMessage = "Şifre zorunludur.")]
         public string Password { get; set; }
 
-        [StringLength(20)]
-        public string Role { get; set; }
-        
-        public string PhotoUrl { get; set; }
+        public string Role { get; set; } = "User"; // Varsayılan rol: User
 
-        public List<Question> Questions { get; set; }
+        // YENİ EKLENEN ALANLAR
+        public string? Name { get; set; }          // Ad
+        public string? Surname { get; set; }       // Soyad
+        public string? Email { get; set; }         // E-Posta
+        public string? PhoneNumber { get; set; }   // Telefon
+        public string PhotoUrl { get; set; } = "/img/undraw_profile.svg"; // Varsayılan Resim
+
+        // İLİŞKİLER (Boş olabilir - Nullable)
+        public List<Question>? Questions { get; set; }
+        public List<Answer>? Answers { get; set; }
     }
 }

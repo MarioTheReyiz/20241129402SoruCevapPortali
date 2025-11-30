@@ -13,10 +13,9 @@ namespace _20241129402SoruCevapPortali.Models
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // Kullanıcı silinirse cevapları silerken hata vermemesi için kısıtlama
             modelBuilder.Entity<Answer>()
                 .HasOne(a => a.User)
-                .WithMany()
+                .WithMany(u => u.Answers) // <-- BURAYI DÜZELTTİK
                 .HasForeignKey(a => a.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
 

@@ -39,7 +39,6 @@
             <hr class="sidebar-divider">
 
             <div class="sidebar-heading">Yönetim</div>
-
             <li class="nav-item">
                 <a class="nav-link" href="/Admin/Users">
                     <i class="fas fa-fw fa-users"></i>
@@ -49,17 +48,23 @@
 
             <li class="nav-item">
                 <a class="nav-link" href="/Admin/Questions">
-                    <i class="fas fa-fw fa-question-circle"></i>
-                    <span>Sorular</span>
+                    <i class="fas fa-fw fa-comments"></i> <span>Forumlar</span>
                 </a>
             </li>
 
-            <li class="nav-item">
-                <a class="nav-link" href="/Admin/Answers">
-                    <i class="fas fa-fw fa-comments"></i>
-                    <span>Cevaplar</span>
-                </a>
-            </li>
+            @if (User.IsInRole("Admin"))
+            {
+                <hr class="sidebar-divider">
+                <div class="sidebar-heading">Özel Yetki</div>
+
+                <li class="nav-item">
+                    <a class="nav-link" href="/Admin/RoleManagement">
+                        <i class="fas fa-fw fa-user-shield"></i>
+                        <span>Yetki Yönetimi</span>
+                    </a>
+                </li>
+            }
+
             <li class="nav-item">
                 <a class="nav-link" href="/Admin/Categories">
                     <i class="fas fa-fw fa-folder"></i>
@@ -88,12 +93,22 @@
                     </button>
 
                     <ul class="navbar-nav ml-auto">
+
+                        <div class="topbar-divider d-none d-sm-block"></div>
+
                         <li class="nav-item dropdown no-arrow">
                             <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                <span class="mr-2 d-none d-lg-inline text-gray-600 small">Admin</span>
-                                <img class="img-profile rounded-circle" src="~/img/undraw_profile.svg">
+
+                                <img class="img-profile rounded-circle mr-2"
+                                     src="~/img/undraw_profile.svg"
+                                     style="width: 32px; height: 32px; object-fit: cover;">
+
+                                <span class="mr-2 d-none d-lg-inline text-gray-600 small font-weight-bold">
+                                    @User.Identity.Name
+                                </span>
                             </a>
+
                             <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in"
                                  aria-labelledby="userDropdown">
                                 <a class="dropdown-item" href="/Admin/Profile">
@@ -107,7 +122,9 @@
                                 </a>
                             </div>
                         </li>
+
                     </ul>
+
                 </nav>
                 <div class="container-fluid">
                     @RenderBody()
