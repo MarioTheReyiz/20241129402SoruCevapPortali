@@ -179,6 +179,23 @@ namespace _20241129402SoruCevapPortali.Controllers
                 return View();
             }
         }
+
+        // --- EKSİK OLAN GET METODU ---
+        [HttpGet]
+        public IActionResult VerifyCode()
+        {
+            // Eğer e-posta TempData'da yoksa (sayfaya doğrudan girilmeye çalışıldıysa)
+            if (TempData["ResetEmail"] == null)
+            {
+                return RedirectToAction("ForgotPassword");
+            }
+
+            // TempData verisini bir sonraki request için sakla (form post edildiğinde silinmesin diye)
+            TempData.Keep("ResetEmail");
+
+            return View();
+        }
+
         [HttpPost]
         public IActionResult VerifyCode(string code)
         {
