@@ -1,22 +1,27 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using _20241129402SoruCevapPortali.Models;
+using _20241129402SoruCevapPortali.Repositories;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using _20241129402SoruCevapPortali.Models;
-using _20241129402SoruCevapPortali.Repositories;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using System.Net.Mail; // Gerekli
 using System.Security.Claims;
 using System.Threading.Tasks;
-using System.Linq;
-using System.Collections.Generic;
 
 namespace _20241129402SoruCevapPortali.Controllers
 {
     public class AuthController : Controller
     {
         private readonly IRepository<User> _userRepository;
+        private readonly IConfiguration _configuration;
 
-        public AuthController(IRepository<User> userRepository)
+        public AuthController(IRepository<User> userRepository, IConfiguration configuration)
         {
             _userRepository = userRepository;
+            _configuration = configuration;
         }
 
         // --- MEVCUT LOGIN KODLARI ---
@@ -92,14 +97,25 @@ namespace _20241129402SoruCevapPortali.Controllers
         }
         // --- 1. E-POSTA GİRME VE KOD GÖNDERME ---
         [HttpGet]
-        public IActionResult ForgotPassword() { return View(); }
+        public IActionResult ForgotPassword()
+        {
+            return View();
+        }
 
         [HttpPost]
-        public IActionResult ForgotPassword(string email)
+        public async Task<IActionResult> ForgotPassword(string email)
         {
+            if (string.IsNullOrEmpty(email))
+            {
+                ViewBag.Error = "Lütfen bir e-posta adresi giriniz.";
+                return View();
+            }
+
             var user = _userRepository.GetAll().FirstOrDefault(x => x.Email == email);
             if (user == null)
             {
+                // Güvenlik gereği "Böyle bir kullanıcı yok" demek yerine
+                // "Eğer kayıtlıysa kod gönderilmiştir" demek daha iyidir ama şimdilik böyle kalsın.
                 ViewBag.Error = "Bu e-posta adresiyle kayıtlı kullanıcı bulunamadı.";
                 return View();
             }
@@ -112,42 +128,57 @@ namespace _20241129402SoruCevapPortali.Controllers
             user.ResetCode = code;
             _userRepository.Update(user);
 
-            // E-posta Gönder (System.Net.Mail)
+            // E-posta Gönderimi (Asenkron ve Config'den okuyarak)
             try
             {
-                System.Net.Mail.SmtpClient client = new System.Net.Mail.SmtpClient("smtp.gmail.com", 587);
-                client.EnableSsl = true;
-                // DİKKAT: Buraya kendi e-posta ve uygulama şifreni yazmalısın!
-                client.Credentials = new System.Net.NetworkCredential("msdn7788@gmail.com", "myvl hevc stca jqrj");
+                // Ayarları appsettings.json'dan çekiyoruz
+                var emailSettings = _configuration.GetSection("EmailSettings");
+                string senderEmail = emailSettings["Mail"];
+                string senderPassword = emailSettings["Password"];
+                string host = emailSettings["Host"];
+                int port = int.Parse(emailSettings["Port"]);
 
-                System.Net.Mail.MailMessage mail = new System.Net.Mail.MailMessage();
-                mail.From = new System.Net.Mail.MailAddress("msdn7788@gmail.com", "Soru Cevap Portalı");
-                mail.To.Add(email);
-                mail.Subject = "Şifre Sıfırlama Kodu";
-                mail.Body = $"Merhaba {user.Name},<br>Şifre sıfırlama kodunuz: <h2>{code}</h2>";
-                mail.IsBodyHtml = true;
+                using (var client = new SmtpClient(host, port))
+                {
+                    client.EnableSsl = true;
+                    client.UseDefaultCredentials = false; // Önce bunu false yapmalısın
+                    client.Credentials = new NetworkCredential(senderEmail, senderPassword);
+                    client.DeliveryMethod = SmtpDeliveryMethod.Network;
 
-                client.Send(mail);
+                    var mailMessage = new MailMessage
+                    {
+                        From = new MailAddress(senderEmail, "Soru Cevap Portalı"),
+                        Subject = "Şifre Sıfırlama Kodu",
+                        Body = $@"
+                            <div style='font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ddd; border-radius: 5px;'>
+                                <h3>Merhaba {user.Name},</h3>
+                                <p>Şifrenizi sıfırlamak için aşağıdaki kodu kullanabilirsiniz:</p>
+                                <h1 style='color: #4e73df; letter-spacing: 5px;'>{code}</h1>
+                                <p>Bu kodu siz talep etmediyseniz, bu e-postayı görmezden gelin.</p>
+                            </div>",
+                        IsBodyHtml = true
+                    };
+                    mailMessage.To.Add(email);
 
-                TempData["ResetEmail"] = email; // Diğer sayfaya taşı
+                    // Asenkron gönderim
+                    await client.SendMailAsync(mailMessage);
+                }
+
+                TempData["ResetEmail"] = email;
                 return RedirectToAction("VerifyCode");
+            }
+            catch (SmtpException smtpEx)
+            {
+                // SMTP hatalarını özel yakala
+                ViewBag.Error = $"SMTP Hatası: {smtpEx.Message}. Durum Kodu: {smtpEx.StatusCode}";
+                return View();
             }
             catch (Exception ex)
             {
-                ViewBag.Error = "E-posta gönderilemedi: " + ex.Message;
+                ViewBag.Error = "Genel bir hata oluştu: " + ex.Message;
                 return View();
             }
         }
-
-        // --- 2. KODU DOĞRULAMA ---
-        [HttpGet]
-        public IActionResult VerifyCode()
-        {
-            if (TempData["ResetEmail"] == null) return RedirectToAction("ForgotPassword");
-            TempData.Keep("ResetEmail");
-            return View();
-        }
-
         [HttpPost]
         public IActionResult VerifyCode(string code)
         {
