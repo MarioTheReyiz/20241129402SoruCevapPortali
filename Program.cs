@@ -59,8 +59,9 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
-// Veritabanýný Doldur (Identity uyumlu)
-// SeedData.cs'yi aþaðýda güncelleyeceðiz.
-// SeedData.IdentityTestVerileriniDoldur(app); // Bu satýrý SeedData'yý güncelleyince açarsýn.
+// --- SEED DATA (TEST VERÝLERÝ) ÇAÐRISI ---
+// Uygulama ayaða kalkarken veritabanýný kontrol edip dolduracak.
+// Metot async olduðu için 'await' kullanýyoruz.
+await SeedData.TestVerileriniDoldur(app);
 
 app.Run();
