@@ -10,7 +10,7 @@ using _20241129402SoruCevapPortali.Models;
 
 namespace _20241129402SoruCevapPortali.Migrations
 {
-    [DbContext(typeof(AppDbContext))]
+    [DbContext(typeof(IdentityDbContext))]
     partial class AppDbContextModelSnapshot : ModelSnapshot
     {
         protected override void BuildModel(ModelBuilder modelBuilder)

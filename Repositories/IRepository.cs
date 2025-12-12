@@ -1,13 +1,12 @@
 ﻿namespace _20241129402SoruCevapPortali.Repositories
 {
-    public interface IRepository<T> where T: class
+    public interface IRepository<T> where T : class
     {
         List<T> GetAll();
-        T GetById(int id);
-        void Add(T entity);
-        void Update(T entity);
-        void Delete(T entity);
-
-        void Save();
+        // ID parametresini 'int' yerine 'object' yaptık. Böylece hem int hem string kabul eder.
+        T GetById(object id);
+        void Add(T p);
+        void Delete(T p);
+        void Update(T p);
     }
 }

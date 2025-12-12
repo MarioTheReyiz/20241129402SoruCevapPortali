@@ -6,7 +6,7 @@ namespace _20241129402SoruCevapPortali.Models
     {
         public static void TestVerileriniDoldur(IApplicationBuilder app)
         {
-            var context = app.ApplicationServices.CreateScope().ServiceProvider.GetRequiredService<AppDbContext>();
+            var context = app.ApplicationServices.CreateScope().ServiceProvider.GetRequiredService<IdentityDbContext>();
 
             if (context.Database.GetPendingMigrations().Any())
             {

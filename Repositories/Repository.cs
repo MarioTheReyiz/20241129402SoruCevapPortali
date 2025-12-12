@@ -1,5 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
-using _20241129402SoruCevapPortali.Models;
+﻿using _20241129402SoruCevapPortali.Models;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -16,36 +16,32 @@ namespace _20241129402SoruCevapPortali.Repositories
             _dbSet = _context.Set<T>();
         }
 
+        public void Add(T p)
+        {
+            _dbSet.Add(p);
+            _context.SaveChanges();
+        }
+
+        public void Delete(T p)
+        {
+            _dbSet.Remove(p);
+            _context.SaveChanges();
+        }
+
         public List<T> GetAll()
         {
             return _dbSet.ToList();
         }
 
-        public T GetById(int id)
+        // Burayı da object olarak güncelledik
+        public T GetById(object id)
         {
             return _dbSet.Find(id);
         }
 
-        public void Add(T entity)
+        public void Update(T p)
         {
-            _dbSet.Add(entity);
-            _context.SaveChanges(); // EKSİK OLABİLİR
-        }
-
-        public void Update(T entity)
-        {
-            _dbSet.Update(entity);
-            _context.SaveChanges(); // İŞTE ŞİFREYİ KAYDETMEYEN KISIM BURASIYDI
-        }
-
-        public void Delete(T entity)
-        {
-            _dbSet.Remove(entity);
-            _context.SaveChanges(); // SİLME DE KAYDEDİLMELİ
-        }
-
-        public void Save()
-        {
+            _dbSet.Update(p);
             _context.SaveChanges();
         }
     }

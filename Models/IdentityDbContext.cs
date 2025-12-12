@@ -1,28 +1,33 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore; // <--- BU EKSİKTİ!
+using Microsoft.EntityFrameworkCore;
 
 namespace _20241129402SoruCevapPortali.Models
 {
-    public class AppDbContext : DbContext
+    public class AppDbContext : IdentityDbContext<AppUser>
     {
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
         public DbSet<Category> Categories { get; set; }
-        public DbSet<User> Users { get; set; }
         public DbSet<Question> Questions { get; set; }
         public DbSet<Answer> Answers { get; set; }
-
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<Log> Logs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            base.OnModelCreating(modelBuilder); // Identity için zorunlu
+
             modelBuilder.Entity<Answer>()
                 .HasOne(a => a.User)
-                .WithMany(u => u.Answers) // <-- BURAYI DÜZELTTİK
+                .WithMany(u => u.Answers)
                 .HasForeignKey(a => a.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            base.OnModelCreating(modelBuilder);
+            modelBuilder.Entity<Question>()
+                .HasOne(q => q.User)
+                .WithMany(u => u.Questions)
+                .HasForeignKey(q => q.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

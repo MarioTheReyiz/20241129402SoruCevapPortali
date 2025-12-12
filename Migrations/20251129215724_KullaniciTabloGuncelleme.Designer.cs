@@ -11,7 +11,7 @@ using _20241129402SoruCevapPortali.Models;
 
 namespace _20241129402SoruCevapPortali.Migrations
 {
-    [DbContext(typeof(AppDbContext))]
+    [DbContext(typeof(IdentityDbContext))]
     [Migration("20251129215724_KullaniciTabloGuncelleme")]
     partial class KullaniciTabloGuncelleme
     {

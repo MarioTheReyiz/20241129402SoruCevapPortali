@@ -11,7 +11,7 @@ using _20241129402SoruCevapPortali.Models;
 
 namespace _20241129402SoruCevapPortali.Migrations
 {
-    [DbContext(typeof(AppDbContext))]
+    [DbContext(typeof(IdentityDbContext))]
     [Migration("20251130123845_BildirimSistemi")]
     partial class BildirimSistemi
     {
