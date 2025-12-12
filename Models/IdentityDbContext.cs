@@ -1,8 +1,9 @@
-﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore; // <--- BU EKSİKTİ!
+﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore; // BU SATIR ŞART
 using Microsoft.EntityFrameworkCore;
 
 namespace _20241129402SoruCevapPortali.Models
 {
+    // IdentityDbContext<AppUser> kullanıyoruz
     public class AppDbContext : IdentityDbContext<AppUser>
     {
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
@@ -15,7 +16,7 @@ namespace _20241129402SoruCevapPortali.Models
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            base.OnModelCreating(modelBuilder); // Identity için zorunlu
+            base.OnModelCreating(modelBuilder); // Identity için zorunlu!
 
             modelBuilder.Entity<Answer>()
                 .HasOne(a => a.User)
