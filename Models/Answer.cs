@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace _20241129402SoruCevapPortali.Models
@@ -8,17 +9,20 @@ namespace _20241129402SoruCevapPortali.Models
         [Key]
         public int Id { get; set; }
 
-        [Required]
-        public string Content { get; set; } // Cevap metni
+        [Required(ErrorMessage = "Cevap içeriği boş olamaz.")]
+        public string Content { get; set; }
 
-        public DateTime CreatedDate { get; set; } = DateTime.Now;
+        public DateTime Date { get; set; } = DateTime.Now;
 
-        // Hangi soruya cevap verildi?
+        // Soru İlişkisi
         public int QuestionId { get; set; }
-        public Question Question { get; set; }
+        public virtual Question Question { get; set; }
 
-        // Kim cevapladı?
-        public int UserId { get; set; }
-        public User User { get; set; }
+        // --- DÜZELTME BURADA ---
+        // Burada da User ID tipi string olmalı.
+        public string UserId { get; set; }
+
+        [ForeignKey("UserId")]
+        public virtual AppUser User { get; set; }
     }
 }
