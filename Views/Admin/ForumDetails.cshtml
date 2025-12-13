@@ -10,7 +10,7 @@
     <div class="card shadow mb-4 border-left-primary">
         <div class="card-header py-3 d-flex justify-content-between align-items-center">
             <h6 class="m-0 font-weight-bold text-primary">@Model.Title</h6>
-            <span class="badge bg-secondary">@(Model.User != null ? Model.User.Username : "Bilinmiyor")</span>
+            <span class="badge bg-secondary">@(Model.User != null ? Model.User.UserName : "Bilinmiyor")</span>
         </div>
         <div class="card-body">
             <p class="card-text" style="font-size: 1.1rem;">@Model.Content</p>
@@ -48,11 +48,11 @@
                                     <td style="width: 15%;">
                                         <div class="d-flex align-items-center">
                                             <img class="img-profile rounded-circle mr-2" style="width:30px" src="~/img/undraw_profile.svg">
-                                            <span class="font-weight-bold">@(ans.User != null ? ans.User.Username : "Silinmiş Üye")</span>
+                                            <span class="font-weight-bold">@(ans.User != null ? ans.User.UserName : "Silinmiş Üye")</span>
                                         </div>
                                     </td>
                                     <td>@ans.Content</td>
-                                    <td style="width: 15%;">@ans.CreatedDate.ToString("dd.MM.yyyy")</td>
+                                    <td style="width: 15%;">@ans.Date.ToString("dd.MM.yyyy")</td>
                                     <td style="width: 10%;">
                                         <button class="btn btn-danger btn-sm btn-delete-ans" data-id="@ans.Id">
                                             <i class="fas fa-trash"></i> Sil

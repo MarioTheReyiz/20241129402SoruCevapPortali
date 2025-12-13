@@ -14,7 +14,7 @@
                     <tr id="row_@item.Id">
                         <td>@item.Id</td>
                         <td>@(item.Content.Length > 50 ? item.Content.Substring(0, 50) + "..." : item.Content)</td>
-                        <td>@item.CreatedDate.ToShortDateString()</td>
+                        <td>@item.Date.ToShortDateString()</td>
                         <td><button class="btn btn-danger btn-sm btn-del-ans" data-id="@item.Id">Sil</button></td>
                     </tr>
                 }

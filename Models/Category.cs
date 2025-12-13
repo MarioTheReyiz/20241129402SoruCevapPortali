@@ -13,6 +13,6 @@ namespace _20241129402SoruCevapPortali.Models
 
             public string Description { get; set; }
             
-            public List<Question> Questions { get; set; }
+            public List<Question>? Questions { get; set; }
     }
 }
