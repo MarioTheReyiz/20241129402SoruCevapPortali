@@ -8,10 +8,10 @@ namespace _20241129402SoruCevapPortali.Models
         public int Id { get; set; }
 
         [Required(ErrorMessage = "Kullanıcı adı zorunludur.")]
-        public string Username { get; set; }
+        public string? Username { get; set; }
 
         [Required(ErrorMessage = "Şifre zorunludur.")]
-        public string Password { get; set; }
+        public string? Password { get; set; }
 
         public string Role { get; set; } = "User"; // Varsayılan rol: User
 

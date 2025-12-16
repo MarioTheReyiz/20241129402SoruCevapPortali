@@ -11,10 +11,11 @@ namespace _20241129402SoruCevapPortali.Models
         public DateTime Date { get; set; } = DateTime.Now;
         public bool IsRead { get; set; } = false;
 
-        // Kime gidecek?
-        public string TargetRole { get; set; } // "All", "Admin", "Moderator", "User"
-        public int? TargetUserId { get; set; } // Kişiye özelse ID'si, değilse boş
+        public string TargetRole { get; set; }
 
-        public string SenderName { get; set; } // Gönderen Admin
+        // DÜZELTME: int? yerine string? yapıyoruz
+        public string? TargetUserId { get; set; }
+
+        public string SenderName { get; set; }
     }
 }

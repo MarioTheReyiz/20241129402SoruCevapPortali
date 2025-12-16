@@ -1,4 +1,9 @@
-﻿@model List<_20241129402SoruCevapPortali.Models.User>
+﻿@using _20241129402SoruCevapPortali.Models
+@using Microsoft.AspNetCore.Identity
+@inject UserManager<AppUser> UserManager
+
+@model List<AppUser>
+
 @{
     ViewData["Title"] = "Yetki Yönetimi";
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
@@ -29,24 +34,25 @@
                 <tbody>
                     @foreach (var item in Model)
                     {
+                        var roles = await UserManager.GetRolesAsync(item);
+                        var userRole = roles.FirstOrDefault() ?? "User";
+
                         <tr>
                             <td>
-                                <img src="~/img/undraw_profile.svg" width="30" class="rounded-circle mr-2">
-                                @item.Username
+                                <img src="/img/undraw_profile.svg" width="30" class="rounded-circle mr-2">
+                                @item.UserName
                             </td>
                             <td>
-                                @if (item.Role == "Admin")
+                                @if (userRole == "Admin")
                                 {
                                     <span class="badge bg-danger text-white">Admin</span>
                                 }
-                                else if (item.Role == "Moderator")
+                                else if (userRole == "Moderator")
                                 {
-
                                     <span class="badge bg-warning text-dark">Moderator</span>
                                 }
                                 else
                                 {
-
                                     <span class="badge bg-secondary text-white">User</span>
                                 }
                             </td>
@@ -74,7 +80,7 @@
                     $.post("/Admin/UpdateRole", { id: id, newRole: newRole }, function (res) {
                         if (res.success) {
                             alert(res.message);
-                            location.reload(); // Sayfayı yenile
+                            location.reload();
                         } else {
                             alert("Hata: " + res.message);
                         }

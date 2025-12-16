@@ -1,37 +1,48 @@
 ﻿@using _20241129402SoruCevapPortali.Models
 @using _20241129402SoruCevapPortali.Repositories
-@inject IRepository<User> UserRepo
+@using Microsoft.AspNetCore.Identity
+
+@* BURAYI DÜZELTTİK: User yerine AppUser *@
+@inject IRepository<AppUser> UserRepo
 @inject IRepository<Notification> NotifRepo
 
 @{
     // --- 1. PROFİL RESMİ VE KULLANICI BİLGİSİ ---
     string userResmi = "/img/undraw_profile.svg";
     string myRole = "User";
-    int myId = 0;
+    string myId = ""; // IdentityUser'da ID string (GUID) olur, int olmaz.
 
     if (User.Identity.IsAuthenticated)
     {
-        var aktifKullanici = UserRepo.GetAll().FirstOrDefault(x => x.Username == User.Identity.Name);
+        // UserName genellikle Identity'de PascalCase yazılır.
+        var aktifKullanici = UserRepo.GetAll().FirstOrDefault(x => x.UserName == User.Identity.Name);
+
         if (aktifKullanici != null)
         {
-            if (!string.IsNullOrEmpty(aktifKullanici.PhotoUrl)) userResmi = aktifKullanici.PhotoUrl;
-            myRole = aktifKullanici.Role;
-            myId = aktifKullanici.Id;
+            if (!string.IsNullOrEmpty(aktifKullanici.PhotoUrl))
+                userResmi = aktifKullanici.PhotoUrl;
+
+            // AppUser'da "Role" property'si olmadığı için, rolü sistemden (Cookie'den) çekiyoruz
+            if (User.IsInRole("Admin")) myRole = "Admin";
+
+            myId = aktifKullanici.Id; // String ID atanıyor
         }
     }
 
-    // --- 2. BİLDİRİM MANTIĞI (SADECE BANA UYGUN OLANLAR) ---
+    // --- 2. BİLDİRİM MANTIĞI (SADECE OKUNMAMIŞLAR) ---
     var myNotifications = new List<Notification>();
     if (NotifRepo != null)
     {
         myNotifications = NotifRepo.GetAll()
             .Where(n =>
-                n.TargetRole == "All" ||
-                n.TargetRole == myRole ||
-                (n.TargetRole == "Private" && n.TargetUserId == myId)
+                // 1. Kural: Sadece bana ait olanlar
+                (n.TargetUserId.ToString() == myId)
+                &&
+                // 2. Kural: SADECE OKUNMAMIŞ OLANLAR (Bunu eklemezsen hep geri gelir!)
+                n.IsRead == false
             )
             .OrderByDescending(n => n.Date)
-            .Take(5) // Son 5 tanesi
+            .Take(5)
             .ToList();
     }
 }

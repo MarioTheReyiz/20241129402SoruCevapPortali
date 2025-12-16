@@ -1,33 +1,65 @@
-﻿@model List<_20241129402SoruCevapPortali.Models.User>
+﻿@using _20241129402SoruCevapPortali.Models
+@using Microsoft.AspNetCore.Identity
+
+@* Kullanıcıları ve Rolleri yönetmek için UserManager ekliyoruz *@
+@inject UserManager<AppUser> UserManager
+@model List<AppUser>
+
 @{
-    ViewData["Title"] = "Kullanıcılar"; Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Kullanıcılar";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
 }
 
 <div class="card shadow mb-4">
-    <div class="card-header py-3"><h6 class="m-0 font-weight-bold text-primary">Kullanıcı Listesi</h6></div>
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Kullanıcı Listesi</h6>
+    </div>
     <div class="card-body">
         <table class="table table-bordered">
-            <thead><tr><th>ID</th><th>Kullanıcı Adı</th><th>Rol</th><th>İşlem</th></tr></thead>
+            <thead>
+                <tr>
+                    <th>E-Posta</th>
+                    <th>Kullanıcı Adı</th>
+                    <th>Rol</th>
+                    <th>İşlem</th>
+                </tr>
+            </thead>
             <tbody>
                 @foreach (var item in Model)
                 {
+                    var roller = await UserManager.GetRolesAsync(item);
+                    var userRole = roller.FirstOrDefault() ?? "Rol Yok";
+
                     <tr id="u_@item.Id">
-                        <td>@item.Id</td>
-                        <td>@item.Username</td>
-                        <td>@item.Role</td>
-                        <td><button class="btn btn-danger btn-sm btn-del-user" data-id="@item.Id">Sil</button></td>
+                        <td>@item.Email</td>
+
+                        <td>@item.UserName</td>
+                        <td><span class="badge badge-info">@userRole</span></td>
+
+                        <td>
+                            <button class="btn btn-danger btn-sm btn-del-user" data-id="@item.Id">Sil</button>
+                        </td>
                     </tr>
                 }
             </tbody>
         </table>
     </div>
 </div>
+
 @section Scripts {
     <script>
         $(".btn-del-user").click(function(){
-            var id=$(this).data("id");
-            if(confirm("Kullanıcıyı silmek istiyor musunuz?"))
-                $.post("/Admin/DeleteUser", {id:id}, function(r){ if(r.success) $("#u_"+id).remove(); });
+            var id = $(this).data("id");
+            if(confirm("Kullanıcıyı silmek istiyor musunuz?")) {
+                // Controller'daki silme metodunun string ID kabul ettiğinden emin ol
+                $.post("/Admin/DeleteUser", { id: id }, function(r){
+                    if(r.success) {
+                        $("#u_" + id).remove();
+                    } else {
+                        alert("Silme işlemi başarısız veya yetkiniz yok.");
+                    }
+                });
+            }
         });
     </script>
 }

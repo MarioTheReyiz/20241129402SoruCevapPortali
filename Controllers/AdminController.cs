@@ -1,14 +1,15 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.SignalR; // SignalR kütüphanesi
+﻿using _20241129402SoruCevapPortali.Hubs; // Hub klasörü referansı
 using _20241129402SoruCevapPortali.Models;
 using _20241129402SoruCevapPortali.Repositories;
-using _20241129402SoruCevapPortali.Hubs; // Hub klasörü referansı
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.SignalR; // SignalR kütüphanesi
+using System;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using System.IO;
-using System;
 
 namespace _20241129402SoruCevapPortali.Controllers
 {
@@ -21,7 +22,8 @@ namespace _20241129402SoruCevapPortali.Controllers
         private readonly IRepository<Answer> _answerRepo;
         private readonly IRepository<Log> _logRepo;
         private readonly IRepository<Notification> _notificationRepo;
-
+        private readonly UserManager<AppUser> _userManager;
+        private readonly RoleManager<IdentityRole> _roleManager; // <-- BUNU EKLE
         // SignalR Context (Bildirim göndermek için)
         private readonly IHubContext<GeneralHub> _hubContext;
 
@@ -32,7 +34,9 @@ namespace _20241129402SoruCevapPortali.Controllers
             IRepository<Answer> a,
             IRepository<Log> logRepo,
             IRepository<Notification> notificationRepo,
-            IHubContext<GeneralHub> hubContext // Inject edildi
+            IHubContext<GeneralHub> hubContext, // Inject edildi
+            UserManager<AppUser> userManager,
+            RoleManager<IdentityRole> roleManager
         )
         {
             _categoryRepo = c;
@@ -42,6 +46,8 @@ namespace _20241129402SoruCevapPortali.Controllers
             _logRepo = logRepo;
             _notificationRepo = notificationRepo;
             _hubContext = hubContext;
+            _userManager = userManager;
+            _roleManager = roleManager;
         }
 
         // --- DASHBOARD ---
@@ -65,38 +71,101 @@ namespace _20241129402SoruCevapPortali.Controllers
 
             return View();
         }
-
-        // --- BİLDİRİM GÖNDERME (SIGNALR İLE CANLI) ---
-        [HttpGet]
+        // --- EKSİK OLAN KISIM BURASI ---
+        [HttpGet] // Bu satır, sayfanın açılmasını sağlar
         public IActionResult SendNotification()
         {
-            // SelectList'te Username kullanıyoruz
+            // Kullanıcı seçimi için listeyi dolduruyoruz
             ViewBag.Users = new SelectList(_userRepo.GetAll(), "Id", "UserName");
             return View();
         }
-
+        // ------------------------------
         [HttpPost]
         public async Task<IActionResult> SendNotification(string message, string targetType, string? specificUserId)
         {
-            // 1. Veritabanına Kaydet
-            var notif = new Notification
+            // A) ALICILARI BELİRLE
+            var alicilar = new List<AppUser>();
+
+            if (targetType == "Private" && !string.IsNullOrEmpty(specificUserId))
             {
-                Message = message,
-                SenderName = User.Identity.Name,
-                Date = DateTime.Now,
-                TargetRole = targetType
-                // Not: Eğer kişiye özel bildirim yapacaksan Notification modelindeki TargetUserId tipini string yapman gerekebilir.
-            };
-            _notificationRepo.Add(notif);
+                // Tek kişiye
+                var user = await _userManager.FindByIdAsync(specificUserId);
+                if (user != null) alicilar.Add(user);
+            }
+            else if (targetType == "All")
+            {
+                // Herkese
+                alicilar = _userManager.Users.ToList();
+            }
+            else
+            {
+                // Belirli role (Admin, User vs.)
+                var usersInRole = await _userManager.GetUsersInRoleAsync(targetType);
+                alicilar.AddRange(usersInRole);
+            }
 
-            // 2. Log Tut
-            KayitTut("Bildirim Gönderildi", $"Mesaj: {message} -> {targetType}");
+            // B) HERKES İÇİN AYRI BİLDİRİM OLUŞTUR
+            foreach (var alici in alicilar)
+            {
+                var notif = new Notification
+                {
+                    Message = message,
+                    SenderName = User.Identity.Name,
+                    Date = DateTime.Now,
+                    IsRead = false,          // Okunmadı
+                    TargetRole = "Private",  // Artık hepsi kişiye özel
+                    TargetUserId = alici.Id  // Alıcının String ID'si
+                };
+                _notificationRepo.Add(notif);
+            }
 
-            // 3. SIGNALR İLE ANLIK GÖNDER (YENİ)
-            // İstemci tarafındaki "ReceiveNotification" metodunu tetikler
+            // C) LOGLAMA VE SİNYAL GÖNDERME
+            KayitTut("Bildirim Gönderildi", $"Mesaj: {message} -> {alicilar.Count} kişiye.");
             await _hubContext.Clients.All.SendAsync("ReceiveNotification", message);
 
             return RedirectToAction("SendNotification", new { success = true });
+        }
+        public IActionResult AllNotifications()
+        {
+            // 1. Aktif kullanıcıyı bul
+            var activeUser = _userRepo.GetAll().FirstOrDefault(u => u.UserName == User.Identity.Name);
+
+            // 2. Rolü ve ID'yi al
+            var myRole = User.IsInRole("Admin") ? "Admin" : "User";
+            string myId = activeUser != null ? activeUser.Id : "";
+
+            // 3. Bildirimleri getir
+            var list = _notificationRepo.GetAll()
+                .Where(n =>
+                    n.TargetRole == "All" ||
+                    n.TargetRole == myRole ||
+                    // DÜZELTME: n.TargetUserId.ToString() diyerek string'e çevirdik
+                    (n.TargetRole == "Private" && n.TargetUserId.ToString() == myId)
+                )
+                .OrderByDescending(n => n.Date)
+                .ToList();
+
+            return View(list);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> MarkNotificationsAsRead()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return Json(new { success = false });
+
+            // Sadece bana ait ve okunmamış olanları bul
+            var unreadNotifications = _notificationRepo.GetAll()
+                .Where(n => n.TargetUserId == user.Id && !n.IsRead)
+                .ToList();
+
+            foreach (var notif in unreadNotifications)
+            {
+                notif.IsRead = true;
+                _notificationRepo.Update(notif);
+            }
+
+            return Json(new { success = true });
         }
 
         // --- KULLANICI YÖNETİMİ ---
@@ -214,7 +283,7 @@ namespace _20241129402SoruCevapPortali.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Profile(AppUser p, Microsoft.AspNetCore.Http.IFormFile? ImageFile)
+        public async Task<IActionResult> UpdateProfile(AppUser p, Microsoft.AspNetCore.Http.IFormFile? ImageFile)
         {
             var userToUpdate = _userRepo.GetAll().FirstOrDefault(x => x.UserName == User.Identity.Name);
 
@@ -292,5 +361,42 @@ namespace _20241129402SoruCevapPortali.Controllers
             }
             return Json(new { success = false });
         }
+        // --- YETKİ (ROL) YÖNETİMİ ---
+
+        [HttpGet]
+        public IActionResult RoleManagement()
+        {
+            // Veritabanındaki rolleri listele
+            var users = _userManager.Users.ToList();
+            return View(users);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> CreateRole(string roleName)
+        {
+            if (!string.IsNullOrEmpty(roleName))
+            {
+                // Rol daha önce yoksa oluştur
+                if (!await _roleManager.RoleExistsAsync(roleName))
+                {
+                    await _roleManager.CreateAsync(new IdentityRole(roleName));
+                    KayitTut("Rol Eklendi", $"Yeni Rol: {roleName}");
+                }
+            }
+            return RedirectToAction("RoleManagement");
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> DeleteRole(string id)
+        {
+            var role = await _roleManager.FindByIdAsync(id);
+            if (role != null)
+            {
+                await _roleManager.DeleteAsync(role);
+                KayitTut("Rol Silindi", $"Rol: {role.Name}");
+            }
+            return RedirectToAction("RoleManagement");
+        }
     }
+
 }

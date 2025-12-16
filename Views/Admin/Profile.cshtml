@@ -1,79 +1,83 @@
-﻿@model _20241129402SoruCevapPortali.Models.User
+﻿@using _20241129402SoruCevapPortali.Models
+@using Microsoft.AspNetCore.Identity
+@inject UserManager<AppUser> UserManager
+@model AppUser
+
 @{
-    ViewData["Title"] = "Profil";
+    ViewData["Title"] = "Profilim";
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
+
+    // Kullanıcının rolünü bulalım (göstermek için)
+    var roles = await UserManager.GetRolesAsync(Model);
+    var myRole = roles.FirstOrDefault() ?? "Standart Kullanıcı";
 }
 
-<div class="row justify-content-center">
-    <div class="col-md-8">
+<div class="row">
+    <div class="col-lg-6">
         <div class="card shadow mb-4">
-            <div class="card-header bg-primary text-white">
-                <h6 class="m-0 font-weight-bold text-white">Profil Bilgileri</h6>
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Profil Bilgileri</h6>
             </div>
             <div class="card-body">
-                <form method="post" enctype="multipart/form-data">
-                    <input type="hidden" asp-for="Id" />
+                @* Form post edilince Controller'daki UpdateProfile metoduna gidecek *@
+                <form method="post" action="/Admin/UpdateProfile" enctype="multipart/form-data">
 
-                    <div class="d-flex align-items-center mb-4 p-3 border rounded bg-light">
-                        <div class="mr-3">
-                            <img id="imgPreview"
-                                 src="@(string.IsNullOrEmpty(Model.PhotoUrl) ? "/img/undraw_profile.svg" : Model.PhotoUrl)"
-                                 class="rounded-circle img-thumbnail"
-                                 style="width: 80px; height: 80px; object-fit: cover;" />
-                        </div>
+                    <input type="hidden" name="Id" value="@Model.Id" />
 
-                        <div>
-                            <h5 class="text-gray-900 mb-1 font-weight-bold">@Model.Username</h5>
-                            <p class="text-muted small mb-2">@Model.Role</p>
-
-                            <label class="btn btn-sm btn-outline-primary mb-0" style="cursor: pointer;">
-                                <i class="fas fa-camera mr-1"></i> Fotoğrafı Değiştir
-                                <input type="file" name="ImageFile" style="display: none;"
-                                       onchange="document.getElementById('imgPreview').src = window.URL.createObjectURL(this.files[0])">
-                            </label>
-                        </div>
+                    <div class="form-group text-center">
+                        <img src="@Model.PhotoUrl" class="rounded-circle img-thumbnail" style="width: 150px; height: 150px; object-fit: cover;">
+                        <br />
+                        <label class="mt-2">Profil Resmi Değiştir</label>
+                        <input type="file" name="file" class="form-control-file border p-1" />
                     </div>
 
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="small font-weight-bold text-gray-700">Ad</label>
-                            <input type="text" asp-for="Name" class="form-control" placeholder="Adınız" />
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="small font-weight-bold text-gray-700">Soyad</label>
-                            <input type="text" asp-for="Surname" class="form-control" placeholder="Soyadınız" />
-                        </div>
+                    <div class="form-group">
+                        <label>Kullanıcı Adı (Değiştirilemez)</label>
+                        <input type="text" class="form-control" value="@Model.UserName" readonly />
                     </div>
 
-                    <div class="mb-3">
-                        <label class="small font-weight-bold text-gray-700">Kullanıcı Adı (Nick)</label>
-                        <input type="text" asp-for="Username" class="form-control bg-white" readonly />
-                        <small class="text-muted">Kullanıcı adı değiştirilemez.</small>
+                    <div class="form-group">
+                        <label>E-Posta Adresi</label>
+                        <input type="email" class="form-control" name="Email" value="@Model.Email" readonly />
+                        <small class="text-muted">E-posta değişimi için yönetici ile görüşün.</small>
                     </div>
 
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="small font-weight-bold text-gray-700">E-Posta</label>
-                            <input type="email" asp-for="Email" class="form-control" />
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="small font-weight-bold text-gray-700">Telefon</label>
-                            <input type="text" asp-for="PhoneNumber" class="form-control" />
-                        </div>
+                    <div class="form-group">
+                        <label>Ad</label>
+                        <input type="text" class="form-control" name="Name" value="@Model.Name" />
                     </div>
 
-                    <hr />
-
-                    <div class="mb-3">
-                        <label class="small font-weight-bold text-gray-700">Şifre</label>
-                        <input type="text" asp-for="Password" class="form-control" placeholder="Değiştirmek istemiyorsanız mevcut şifreniz kalsın" />
+                    <div class="form-group">
+                        <label>Soyad</label>
+                        <input type="text" class="form-control" name="Surname" value="@Model.Surname" />
                     </div>
 
-                    <button type="submit" class="btn btn-primary btn-block">
-                        <i class="fas fa-save mr-2"></i> Değişiklikleri Kaydet
-                    </button>
+                    <div class="form-group">
+                        <label>Rol</label>
+                        <input type="text" class="form-control" value="@myRole" disabled />
+                    </div>
+
+                    <hr>
+                    <button type="submit" class="btn btn-primary btn-block">Bilgileri Güncelle</button>
                 </form>
             </div>
-        </div>  
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-danger">Güvenlik</h6>
+            </div>
+            <div class="card-body">
+                <p>Şifrenizi değiştirmek istiyorsanız aşağıdaki butonu kullanın.</p>
+                <a href="#" class="btn btn-danger btn-icon-split">
+                    <span class="icon text-white-50">
+                        <i class="fas fa-key"></i>
+                    </span>
+                    <span class="text">Şifre Değiştir</span>
+                </a>
+            </div>
+        </div>
     </div>
 </div>
