@@ -1,0 +1,135 @@
+﻿@model _20241129402SoruCevapPortali.Models.AppUser
+@{
+    ViewData["Title"] = "Oyuncu Profili";
+
+    // --- SEVİYE HESAPLAMA MANTIĞI ---
+    int levelCap = 100;
+    int currentTotalXp = Model.ExperiencePoints;
+    int currentLevelBaseXp = (Model.Level - 1) * levelCap;
+    int xpInThisLevel = currentTotalXp - currentLevelBaseXp;
+    int xpNeededForNext = levelCap - xpInThisLevel;
+    int percent = (Model.Level >= 10) ? 100 : xpInThisLevel;
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+
+        <div class="col-md-5 mb-4">
+            <div class="card bg-dark text-white border-danger shadow-lg h-100">
+
+                <div class="card-header bg-gradient-danger text-center py-4 border-0 position-relative">
+                    <div class="position-relative d-inline-block">
+                        <img src="@(Model.PhotoUrl ?? "/img/undraw_profile.svg")" class="rounded-circle border border-4 border-dark bg-secondary" width="130" height="130" style="object-fit:cover;" />
+                        <span class="position-absolute bottom-0 end-0 badge rounded-circle bg-warning text-dark border border-dark p-2 fs-6 fw-bold" style="width: 40px; height: 40px; display:flex; align-items:center; justify-content:center;">
+                            @Model.Level
+                        </span>
+                    </div>
+                    <h3 class="mt-3 fw-bold">@Model.UserName</h3>
+                    <div class="badge bg-dark border border-warning text-warning px-3 py-2 fs-6 mt-1">@Model.Badge</div>
+                </div>
+
+                <div class="card-body">
+                    <div class="mb-4 p-3 bg-black rounded border border-secondary">
+                        <div class="d-flex justify-content-between align-items-end mb-2">
+                            <span class="text-white-50 small">MEVCUT XP</span>
+                            <span class="fw-bold text-white">@Model.ExperiencePoints XP</span>
+                        </div>
+
+                        <div class="progress bg-secondary" style="height: 12px; border-radius: 10px;">
+                            <div class="progress-bar bg-danger progress-bar-striped progress-bar-animated"
+                                 role="progressbar"
+                                 style="width: @percent%">
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-2 small">
+                            <span class="text-muted">Lvl @Model.Level</span>
+                            @if (Model.Level < 10)
+                            {
+                                <span class="text-warning">Sonraki: <strong>@xpNeededForNext XP</strong> kaldı</span>
+                            }
+                            else
+                            {
+                                <span class="text-success fw-bold">MAX SEVİYE!</span>
+                            }
+                        </div>
+                    </div>
+
+                    <ul class="list-group list-group-flush bg-transparent">
+                        <li class="list-group-item bg-transparent text-white ps-0"><i class="fas fa-envelope text-danger me-2"></i> @Model.Email</li>
+                        <li class="list-group-item bg-transparent text-white ps-0"><i class="fas fa-id-card text-danger me-2"></i> @Model.Name @Model.Surname</li>
+                    </ul>
+
+                    <div class="mt-4">
+                        <a href="/Auth/EditProfile" class="btn btn-outline-secondary w-100"><i class="fas fa-user-cog"></i> Profili Düzenle</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-7">
+            <div class="row g-3">
+
+                <div class="col-md-12">
+                    <div class="card bg-dark border-secondary p-4 shadow-sm hover-scale">
+                        <div class="d-flex align-items-center">
+                            <div class="rounded-circle bg-danger bg-opacity-10 p-3 me-3 text-danger">
+                                <i class="fas fa-question fa-2x"></i>
+                            </div>
+                            <div>
+                                <div class="text-muted small text-uppercase fw-bold">Açılan Konular</div>
+                                <h2 class="text-white fw-bold m-0">@ViewBag.SoruSayisi</h2>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-12">
+                    <div class="card bg-dark border-secondary p-4 shadow-sm hover-scale">
+                        <div class="d-flex align-items-center">
+                            <div class="rounded-circle bg-warning bg-opacity-10 p-3 me-3 text-warning">
+                                <i class="fas fa-comment-dots fa-2x"></i>
+                            </div>
+                            <div>
+                                <div class="text-muted small text-uppercase fw-bold">Yazılan Cevaplar</div>
+                                <h2 class="text-white fw-bold m-0">@ViewBag.CevapSayisi</h2>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-12">
+                    <div class="card bg-dark border-secondary p-4 shadow-sm hover-scale">
+                        <div class="d-flex align-items-center">
+                            <div class="rounded-circle bg-success bg-opacity-10 p-3 me-3 text-success">
+                                <i class="fas fa-heart fa-2x"></i>
+                            </div>
+                            <div>
+                                <div class="text-muted small text-uppercase fw-bold">Kazanılan Beğeniler</div>
+                                <h2 class="text-white fw-bold m-0">@ViewBag.ToplamBegeni</h2>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 mt-3">
+                    <a href="/Home/MyQuestions" class="btn btn-danger w-100 py-3 fw-bold shadow">
+                        <i class="fas fa-history me-2"></i> Geçmiş Hareketlerim
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-gradient-danger {
+        background: linear-gradient(135deg, #a71d31 0%, #3f0d12 100%);
+    }
+
+    .hover-scale:hover {
+        transform: translateY(-3px);
+        transition: transform 0.3s;
+        border-color: #d90429 !important;
+    }
+</style>

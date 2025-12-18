@@ -1,0 +1,56 @@
+﻿@model _20241129402SoruCevapPortali.Models.SupportTicket
+@{
+    ViewData["Title"] = "Destek Detayı";
+}
+
+<div class="container mt-4">
+    <div class="card bg-dark border-info">
+        <div class="card-header bg-info text-dark fw-bold d-flex justify-content-between">
+            <span>Ticket #@Model.Id : @Model.Subject</span>
+            <a href="/Admin/SupportList" class="btn btn-sm btn-dark">Geri Dön</a>
+        </div>
+        <div class="card-body" style="height: 400px; overflow-y: auto;">
+            @if (ViewBag.Messages != null)
+            {
+                foreach (var msg in ViewBag.Messages as List<_20241129402SoruCevapPortali.Models.TicketMessage>)
+                {
+                    // Mesajı kimin attığını anlamak için basit kontrol (Admin ID ile User ID kıyaslaması yapılabilir ama şimdilik SenderId'ye bakalım)
+                    // AdminController'da AdminReply yaparken SenderId = admin.Id yapıyoruz.
+                    // Burada görsel ayrım için basit bir mantık kuralım: Eğer mesaj sahibi Ticket sahibi değilse Admin'dir.
+
+                    bool isAdminMsg = msg.SenderId != Model.UserId;
+
+                    <div class="d-flex mb-3 @(isAdminMsg ? "justify-content-end" : "justify-content-start")">
+                        <div class="card text-white @(isAdminMsg ? "bg-primary border-primary" : "bg-secondary border-secondary")" style="max-width: 70%;">
+                            <div class="card-header py-1 px-2 small fw-bold">
+                                @(isAdminMsg ? "Yönetim" : "Kullanıcı") - @msg.Date.ToString("HH:mm")
+                            </div>
+                            <div class="card-body py-2 px-3">
+                                @msg.Content
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+        <div class="card-footer">
+            <form asp-action="AdminReply" method="post">
+                <input type="hidden" name="id" value="@Model.Id" />
+
+                <div class="mb-2">
+                    <textarea name="content" class="form-control bg-black text-white border-secondary" rows="3" placeholder="Cevabınızı yazın..."></textarea>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="form-check text-white">
+                        <input class="form-check-input" type="checkbox" name="closeTicket" value="true" id="closeCheck">
+                        <label class="form-check-label" for="closeCheck">
+                            Cevapla ve Konuyu Kapat
+                        </label>
+                    </div>
+                    <button type="submit" class="btn btn-info fw-bold"><i class="fas fa-paper-plane"></i> Gönder</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

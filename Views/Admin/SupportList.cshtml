@@ -1,0 +1,39 @@
+﻿@model List<_20241129402SoruCevapPortali.Models.SupportTicket>
+    @{ ViewData["Title"] = "Destek Talepleri"; }
+
+    <div class="container mt-4">
+        <h3 class="text-white mb-3"><i class="fas fa-headset text-info"></i> Açık Destek Talepleri</h3>
+
+        <table class="table table-dark table-hover border-secondary">
+            <thead>
+                <tr class="text-info">
+                    <th>Tarih</th>
+                    <th>Kullanıcı ID</th>
+                    <th>Konu</th>
+                    <th>Durum</th>
+                    <th>İşlem</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                <tr>
+                    <td>@item.CreatedDate.ToString("dd.MM HH:mm")</td>
+                    <td>@item.UserId</td>
+                    <td>@item.Subject</td>
+                    <td><span class="badge bg-success">Açık</span></td>
+                    <td>
+                        <a href="/Admin/SupportDetails/@item.Id" class="btn btn-sm btn-primary">
+                            <i class="fas fa-comments"></i> Oku & Cevapla
+                        </a>
+                    </td>
+                </tr>
+                }
+            </tbody>
+        </table>
+
+        @if(Model.Count == 0)
+        {
+        <div class="alert alert-info text-center">Tüm destek talepleri yanıtlanmış.</div>
+        }
+    </div>

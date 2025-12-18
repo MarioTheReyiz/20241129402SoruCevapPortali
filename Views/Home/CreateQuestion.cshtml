@@ -1,0 +1,36 @@
+﻿@model _20241129402SoruCevapPortali.Models.Question
+@{
+    ViewData["Title"] = "Soru Sor";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card bg-dark border-secondary text-white">
+            <div class="card-header bg-danger text-white">
+                <i class="fas fa-edit"></i> Yeni Konu Başlat
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    <div class="mb-3">
+                        <label class="form-label">Konu Başlığı</label>
+                        <input type="text" name="Title" class="form-control bg-secondary text-white border-0" required placeholder="Neyle ilgili konuşmak istiyorsun?" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Kategori</label>
+                        @Html.DropDownList("CategoryId", (SelectList)ViewBag.Categories, "Bir Kategori Seçiniz", new { @class = "form-control bg-secondary text-white border-0" })
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">İçerik</label>
+                        <textarea name="Content" rows="6" class="form-control bg-secondary text-white border-0" required placeholder="Detayları buraya yaz..."></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-danger w-100 fw-bold">
+                        <i class="fas fa-paper-plane"></i> Yayınla
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

@@ -13,6 +13,13 @@ namespace _20241129402SoruCevapPortali.Models
         public DbSet<Answer> Answers { get; set; }
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<Log> Logs { get; set; }
+        // Mevcut DbSet'lerin altına şunu ekle:
+        public DbSet<Like> Likes { get; set; }
+
+        // DbSet'lerin altına ekle:
+        public DbSet<SupportTicket> SupportTickets { get; set; }
+        public DbSet<TicketMessage> TicketMessages { get; set; }
+        public DbSet<UserReport> UserReports { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

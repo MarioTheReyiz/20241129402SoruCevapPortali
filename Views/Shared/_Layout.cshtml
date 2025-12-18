@@ -1,49 +1,120 @@
-﻿<!DOCTYPE html>
-<html lang="en">
+﻿@using Microsoft.AspNetCore.Identity
+@using _20241129402SoruCevapPortali.Models
+
+@inject SignInManager<AppUser> SignInManager
+@inject UserManager<AppUser> UserManager
+
+<!DOCTYPE html>
+<html lang="tr">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - _20241129402SoruCevapPortali</title>
+    <title>@ViewData["Title"] - OyunForum</title>
+
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/_20241129402SoruCevapPortali.styles.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 </head>
-<body>
+<body class="bg-dark text-white">
     <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">_20241129402SoruCevapPortali</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-black border-bottom border-danger">
+            <div class="container">
+                <a class="navbar-brand text-danger fw-bold fs-4" href="/">
+                    <i class="fas fa-gamepad"></i> OyunForum
+                </a>
+
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-                        </li>
+
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav me-auto">
+                        <li class="nav-item"><a class="nav-link text-white" href="/">Anasayfa</a></li>
+
+                        @if (SignInManager.IsSignedIn(User))
+                        {
+                            <li class="nav-item"><a class="nav-link text-white" href="/Home/MyQuestions">Sorularım</a></li>
+                            <li class="nav-item"><a class="nav-link text-white" href="/Home/CreateQuestion">Soru Sor</a></li>
+
+                            @if (User.IsInRole("Admin") || User.IsInRole("Moderator"))
+                            {
+                                <li class="nav-item"><a class="nav-link text-warning" href="/Admin/Index">Panel</a></li>
+                            }
+                        }
+                    </ul>
+
+                    <ul class="navbar-nav ms-auto align-items-center">
+                        @if (SignInManager.IsSignedIn(User))
+                        {
+                            // Kullanıcıyı veritabanından çekiyoruz ki güncel foto gelsin
+                            var currentUser = await UserManager.GetUserAsync(User);
+                            var photoPath = currentUser?.PhotoUrl ?? "/img/undraw_profile.svg";
+                            var userName = currentUser?.UserName ?? User.Identity.Name;
+
+                            <li class="nav-item me-3">
+                                <a href="/Home/Notifications" class="text-white position-relative">
+                                    <i class="fas fa-bell fa-lg"></i>
+                                    <span id="notif-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display:none; font-size:10px;">0</span>
+                                </a>
+                            </li>
+
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle text-white fw-bold d-flex align-items-center" href="#" id="profileDropdown" role="button" data-bs-toggle="dropdown">
+                                    <img src="@photoPath" class="rounded-circle me-2" width="35" height="35" style="object-fit:cover; border: 2px solid #dc3545;">
+
+                                    <span>@userName</span>
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end bg-dark border-secondary">
+                                    <li><a class="dropdown-item text-white" href="/Auth/EditProfile"><i class="fas fa-cog me-2"></i> Ayarlar</a></li>
+                                    <li><a class="dropdown-item text-white" href="/Home/MyQuestions"><i class="fas fa-list me-2"></i> Sorularım</a></li>
+                                    <li><hr class="dropdown-divider bg-secondary"></li>
+                                    <li><a class="dropdown-item text-danger" href="/Auth/Logout"><i class="fas fa-sign-out-alt me-2"></i> Çıkış Yap</a></li>
+                                </ul>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item me-2">
+                                <a class="btn btn-outline-light btn-sm" href="/Auth/Login">Giriş Yap</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="btn btn-danger btn-sm" href="/Auth/Register">Kayıt Ol</a>
+                            </li>
+                        }
                     </ul>
                 </div>
             </div>
         </nav>
     </header>
-    <div class="container">
+
+    <div class="container mt-4">
         <main role="main" class="pb-3">
             @RenderBody()
         </main>
     </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2025 - _20241129402SoruCevapPortali - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-        </div>
-    </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
+    <script>
+        // Basit Bildirim Kodu
+        var connection = new signalR.HubConnectionBuilder().withUrl("/generalHub").build();
+        connection.on("ReceiveNotification", function(msg) {
+            alert("🔔 " + msg);
+            $("#notif-badge").text("1").show(); // Kırmızı nokta yak
+        });
+        connection.start().catch(err => console.error(err));
+
+        // Sayfa açılınca bildirim sayısını kontrol et
+        $(document).ready(function() {
+            $.get("/Home/GetUnreadCount", function(c) {
+                if(c > 0) $("#notif-badge").text(c).show();
+            });
+        });
+    </script>
+
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

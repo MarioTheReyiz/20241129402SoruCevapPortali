@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Content Remove="Views\Admin\SupportList.cshtml" />
     <Content Remove="wwwroot\css\sb-admin-2.css" />
     <Content Remove="wwwroot\css\sb-admin-2.min.css" />
     <Content Remove="wwwroot\js\demo\chart-area-demo.js" />
@@ -19,6 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="Views\Admin\SupportList.cshtml" />
     <None Include="wwwroot\css\sb-admin-2.css" />
     <None Include="wwwroot\css\sb-admin-2.min.css" />
     <None Include="wwwroot\img\adminimage.jpg" />

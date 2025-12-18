@@ -1,0 +1,48 @@
+﻿@model List<Question>
+@{
+    ViewData["Title"] = "Sorularım";
+}
+
+<h2 class="text-danger mb-4">Sorularım</h2>
+
+@if (Model.Count == 0)
+{
+    <div class="alert alert-dark">Henüz hiç soru sormadınız. Hadi bir şeyler sorun!</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-dark table-hover">
+            <thead>
+                <tr>
+                    <th>Başlık</th>
+                    <th>Tarih</th>
+                    <th>Durum</th>
+                    <th>İşlem</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>@item.Title</td>
+                        <td>@item.CreatedDate.ToString("g")</td>
+                        <td>
+                            @if (item.IsApproved)
+                            {
+                                <span class="badge bg-success">Yayında</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-warning text-dark">Onay Bekliyor</span>
+                            }
+                        </td>
+                        <td>
+                            <a href="/Home/Details/@item.Id" class="btn btn-sm btn-outline-light">Görüntüle</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

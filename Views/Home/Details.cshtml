@@ -1,0 +1,156 @@
+﻿@model _20241129402SoruCevapPortali.Models.Question
+@{
+    ViewData["Title"] = Model.Title;
+    var users = ViewBag.Users as Dictionary<string, _20241129402SoruCevapPortali.Models.AppUser>;
+    var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+    // --- YARDIMCI FONKSİYON ---
+    (string Badge, int Level, int Percent, int NextXp, string Photo, string Name) GetUserStats(string userId)
+    {
+        var u = (users != null && users.ContainsKey(userId)) ? users[userId] : null;
+        if (u == null) return ("Misafir", 1, 0, 100, "/img/undraw_profile.svg", "Anonim");
+
+        int cap = 100;
+        int cur = u.ExperiencePoints;
+        int baseXp = (u.Level - 1) * cap;
+        int inLevel = cur - baseXp;
+        int next = cap - inLevel;
+        int perc = (u.Level >= 10) ? 100 : inLevel;
+
+        return (u.Badge, u.Level, perc, next, u.PhotoUrl ?? "/img/undraw_profile.svg", u.UserName);
+    }
+
+    var soruStats = GetUserStats(Model.UserId);
+}
+
+<div class="container mt-4">
+
+    <div class="card bg-dark text-white border-danger mb-4 shadow-lg">
+        <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
+            <span class="fw-bold"><i class="fas fa-hashtag"></i> @ViewBag.CategoryName</span>
+
+            <div class="d-flex align-items-center">
+                @if (User.Identity.IsAuthenticated && currentUserId != Model.UserId)
+                {
+                    <a href="/Report/Create?reportedUserId=@Model.UserId" class="btn btn-sm btn-outline-warning me-2 text-white border-white" title="Bu kullanıcıyı raporla">
+                        <i class="fas fa-flag"></i>
+                    </a>
+                }
+
+                @if (currentUserId == Model.UserId || User.IsInRole("Admin"))
+                {
+                    <form asp-action="DeleteQuestion" method="post" onsubmit="return confirm('Silmek istediğine emin misin?');" class="d-inline">
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <button type="submit" class="btn btn-sm btn-dark text-white hover-danger"><i class="fas fa-trash"></i> Sil</button>
+                    </form>
+                }
+            </div>
+        </div>
+
+        <div class="card-body">
+            <div class="d-flex align-items-start mb-3">
+                <div class="me-3 text-center" style="min-width: 80px;">
+                    <div class="position-relative d-inline-block">
+                        <img src="@soruStats.Photo" class="rounded-circle border border-2 border-danger bg-secondary" width="70" height="70" style="object-fit: cover;">
+                        <div class="badge bg-warning text-dark position-absolute bottom-0 start-50 translate-middle-x border border-dark" style="font-size:0.7rem;">Lvl @soruStats.Level</div>
+                    </div>
+                    <div class="text-danger fw-bold mt-1" style="font-size: 0.8rem;">@soruStats.Badge</div>
+                </div>
+
+                <div class="w-100">
+                    <h2 class="card-title text-danger m-0">@Model.Title</h2>
+                    <div class="text-muted small mb-2">
+                        <i class="fas fa-user"></i> @soruStats.Name &nbsp;|&nbsp;
+                        <i class="far fa-clock"></i> @Model.CreatedDate.ToString("g")
+                    </div>
+
+                    <div class="bg-black rounded p-2 border border-secondary mb-3" style="max-width: 300px;">
+                        <div class="d-flex justify-content-between text-white-50" style="font-size: 0.7rem;">
+                            <span>XP İlerleme</span>
+                            <span class="text-warning">@(soruStats.Level >= 10 ? "MAX LEVEL" : $"Sonraki seviyeye: {soruStats.NextXp} XP")</span>
+                        </div>
+                        <div class="progress bg-secondary mt-1" style="height: 4px;">
+                            <div class="progress-bar bg-danger" role="progressbar" style="width: @soruStats.Percent%"></div>
+                        </div>
+                    </div>
+
+                    <p class="card-text fs-5">@Model.Content</p>
+                </div>
+            </div>
+
+            <hr class="bg-secondary" />
+            <a href="/Home/LikeQuestion/@Model.Id" class="btn btn-outline-danger">
+                <i class="fas fa-heart"></i> Beğen (@Model.LikeCount)
+            </a>
+        </div>
+    </div>
+
+    <h4 class="text-white mb-3"><i class="fas fa-comments text-warning"></i> Cevaplar</h4>
+
+    @if (ViewBag.Answers != null)
+    {
+        foreach (var ans in ViewBag.Answers as List<_20241129402SoruCevapPortali.Models.Answer>)
+        {
+            var ansStats = GetUserStats(ans.UserId);
+
+            <div class="d-flex mb-3">
+                <div class="flex-shrink-0 me-3 text-center" style="min-width: 70px;">
+                    <div class="position-relative d-inline-block">
+                        <img src="@ansStats.Photo" class="rounded-circle border border-secondary bg-dark" width="50" height="50" style="object-fit: cover;">
+                        <div class="badge bg-dark border border-secondary mt-1" style="font-size: 0.6rem;">Lvl @ansStats.Level</div>
+                    </div>
+                    <div class="text-warning fw-bold mt-1" style="font-size: 0.65rem;">@ansStats.Badge</div>
+
+                    @if (ansStats.Level < 10)
+                    {
+                        <div class="text-white-50 fst-italic" style="font-size: 0.55rem; margin-top:2px;">-@ansStats.NextXp XP</div>
+                    }
+                </div>
+
+                <div class="card bg-secondary text-white w-100 border-0 shadow-sm">
+                    <div class="card-body py-2 px-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <div>
+                                <strong class="text-warning me-1">@ansStats.Name</strong>
+                                <small class="text-light opacity-75" style="font-size: 0.7rem;">(@ansStats.Badge)</small>
+                            </div>
+                            <small class="text-white-50">@ans.Date.ToString("g")</small>
+                        </div>
+                        <p class="mb-2">@ans.Content</p>
+
+                        <div class="d-flex justify-content-end align-items-center">
+                            @if (User.Identity.IsAuthenticated && currentUserId != ans.UserId)
+                            {
+                                <a href="/Report/Create?reportedUserId=@ans.UserId" class="text-white-50 text-decoration-none small me-3" title="Raporla">
+                                    <i class="fas fa-flag"></i>
+                                </a>
+                            }
+
+                            <a href="/Home/LikeAnswer/@ans.Id" class="text-white text-decoration-none small btn btn-sm btn-dark border-0">
+                                <i class="fas fa-heart text-danger"></i> @ans.LikeCount
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+
+    @if (User.Identity.IsAuthenticated)
+    {
+        <div class="card bg-dark border-secondary mt-4 mb-5">
+            <div class="card-body">
+                <h5 class="text-white">Bir cevap yaz...</h5>
+                <form action="/Home/AddAnswer" method="post">
+                    <input type="hidden" name="questionId" value="@Model.Id" />
+                    <textarea name="content" class="form-control bg-black text-white border-secondary mb-3" rows="3" placeholder="Fikriniz nedir?"></textarea>
+                    <button class="btn btn-danger px-4 fw-bold"><i class="fas fa-paper-plane"></i> Gönder</button>
+                </form>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-warning">Cevap yazmak için <a href="/Auth/Login" class="fw-bold text-dark">giriş yapmalısınız.</a></div>
+    }
+</div>

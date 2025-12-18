@@ -1,0 +1,42 @@
+﻿@{
+    ViewData["Title"] = "Kullanıcı Raporla";
+}
+
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6">
+        <div class="card bg-dark text-white border-warning shadow">
+            <div class="card-header bg-warning text-dark fw-bold">
+                <i class="fas fa-exclamation-triangle"></i> Kullanıcıyı Raporla
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    <input type="hidden" name="ReportedUserId" value="@ViewBag.ReportedId" />
+
+                    <div class="mb-3">
+                        <label>Sebep</label>
+                        <select name="Reason" class="form-select bg-black text-white border-secondary">
+                            <option value="Hakaret">Hakaret / Küfür</option>
+                            <option value="Spam">Spam / Reklam</option>
+                            <option value="NSFW">Müstehcen İçerik</option>
+                            <option value="Hile">Hile Kullanımı</option>
+                            <option value="Diger">Diğer</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label>Açıklama</label>
+                        <textarea name="Description" class="form-control bg-black text-white border-secondary" rows="4" placeholder="Olayı kısaca anlatın..."></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label>Kanıt (Ekran Görüntüsü)</label>
+                        <input type="file" name="ScreenshotFile" class="form-control bg-black text-white border-secondary" accept="image/*" />
+                        <div class="form-text text-white-50">Opsiyonel, varsa yükleyin.</div>
+                    </div>
+
+                    <button type="submit" class="btn btn-warning w-100 fw-bold">Raporu Gönder</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,36 @@
+﻿@model List<_20241129402SoruCevapPortali.Models.Notification>
+@{
+    ViewData["Title"] = "Bildirimler";
+}
+
+<h3 class="text-white mb-4"><i class="fas fa-bell text-warning"></i> Bildirimlerim</h3>
+
+<div class="list-group">
+    @foreach (var item in Model)
+    {
+        <div class="list-group-item list-group-item-action bg-dark text-white border-secondary mb-2 @(!item.IsRead ? "border-warning border-start-5" : "")">
+            <div class="d-flex w-100 justify-content-between">
+                <h5 class="mb-1">@item.SenderName</h5>
+                <small class="text-muted">@item.Date.ToString("g")</small>
+            </div>
+            <p class="mb-1">@item.Message</p>
+
+            @if (!item.IsRead)
+            {
+                <button class="btn btn-sm btn-outline-warning mt-2" onclick="okunduIsaretle(@item.Id, this)">Okundu İşaretle</button>
+            }
+        </div>
+    }
+</div>
+
+<script>
+    function okunduIsaretle(id, btn) {
+        $.post("/Home/MarkAsRead", { id: id }, function(res) {
+            if(res.success) {
+                $(btn).parent().removeClass("border-warning border-start-5");
+                $(btn).remove();
+                guncelleBadge(); // Layout'taki badge'i güncelle
+            }
+        });
+    }
+</script>
