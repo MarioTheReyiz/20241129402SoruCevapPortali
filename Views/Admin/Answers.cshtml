@@ -1,33 +1,68 @@
 ﻿@model List<_20241129402SoruCevapPortali.Models.Answer>
 @{
-    ViewData["Title"] = "Cevaplar"; Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Cevaplar";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+
+    // Kullanıcıları al
+    var users = ViewBag.Users as Dictionary<string, _20241129402SoruCevapPortali.Models.AppUser>;
 }
 
-<div class="card shadow mb-4">
-    <div class="card-header py-3"><h6 class="m-0 font-weight-bold text-primary">Tüm Cevaplar</h6></div>
-    <div class="card-body">
-        <table class="table table-bordered">
-            <thead><tr><th>ID</th><th>İçerik</th><th>Tarih</th><th>İşlem</th></tr></thead>
-            <tbody>
-                @foreach (var item in Model)
-                {
-                    <tr id="row_@item.Id">
-                        <td>@item.Id</td>
-                        <td>@(item.Content.Length > 50 ? item.Content.Substring(0, 50) + "..." : item.Content)</td>
-                        <td>@item.Date.ToShortDateString()</td>
-                        <td><button class="btn btn-danger btn-sm btn-del-ans" data-id="@item.Id">Sil</button></td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+<div class="container-fluid">
+    <h1 class="h3 mb-2 text-gray-800">Cevap Yönetimi</h1>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Son Cevaplar</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Tarih</th>
+                            <th>Yazan Kişi</th>
+                            <th>İçerik</th>
+                            <th>Beğeni</th>
+                            <th>İşlem</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            string userName = "Silinmiş Üye";
+                            string userPic = "/img/undraw_profile.svg";
+
+                            if (users != null && users.ContainsKey(item.UserId))
+                            {
+                                var u = users[item.UserId];
+                                userName = u.UserName;
+                                if (!string.IsNullOrEmpty(u.PhotoUrl)) { userPic = u.PhotoUrl; }
+                            }
+
+                            <tr>
+                                <td>@item.Date.ToString("dd.MM HH:mm")</td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <img class="img-profile rounded-circle mr-2" src="@userPic" style="width: 35px; height: 35px; object-fit: cover;">
+                                        <span class="font-weight-bold text-dark">@userName</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="d-inline-block text-truncate" style="max-width: 300px;">
+                                        @item.Content
+                                    </span>
+                                </td>
+                                <td>@item.LikeCount</td>
+                                <td>
+                                    <a href="/Admin/DeleteAnswer/@item.Id" class="btn btn-danger btn-sm" onclick="return confirm('Bu cevabı silmek istiyor musunuz?');">
+                                        <i class="fas fa-trash"></i> Sil
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 </div>
-@section Scripts {
-    <script>
-        $(".btn-del-ans").click(function(){
-            var id = $(this).data("id");
-            if(confirm("Bu cevabı silmek istediğinize emin misiniz?"))
-                $.post("/Admin/DeleteAnswer", {id:id}, function(r){ if(r.success) $("#row_"+id).remove(); });
-        });
-    </script>
-}

@@ -1,5 +1,5 @@
 ﻿using System;
-using System.ComponentModel.DataAnnotations.Schema; // Bu gerekli
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace _20241129402SoruCevapPortali.Models
 {
@@ -11,12 +11,10 @@ namespace _20241129402SoruCevapPortali.Models
         public DateTime CreatedDate { get; set; }
         public bool IsApproved { get; set; }
         public int CategoryId { get; set; }
-
-        // İlişkiler
         public string UserId { get; set; }
 
-        [ForeignKey("UserId")] // Bu attribute önemli
-        public virtual AppUser User { get; set; } // <-- EKSİK OLAN BU
+        [ForeignKey("UserId")] 
+        public virtual AppUser User { get; set; } 
 
         public int LikeCount { get; set; } = 0;
     }

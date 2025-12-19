@@ -3,8 +3,6 @@
     ViewData["Title"] = Model.Title;
     var users = ViewBag.Users as Dictionary<string, _20241129402SoruCevapPortali.Models.AppUser>;
     var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-
-    // --- YARDIMCI FONKSİYON ---
     (string Badge, int Level, int Percent, int NextXp, string Photo, string Name) GetUserStats(string userId)
     {
         var u = (users != null && users.ContainsKey(userId)) ? users[userId] : null;

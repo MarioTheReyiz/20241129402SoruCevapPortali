@@ -1,49 +1,35 @@
-﻿@using _20241129402SoruCevapPortali.Models
+﻿@using Microsoft.AspNetCore.Identity
+@using _20241129402SoruCevapPortali.Models
 @using _20241129402SoruCevapPortali.Repositories
-@using Microsoft.AspNetCore.Identity
 
-@* BURAYI DÜZELTTİK: User yerine AppUser *@
-@inject IRepository<AppUser> UserRepo
+@inject UserManager<AppUser> UserManager
 @inject IRepository<Notification> NotifRepo
 
 @{
-    // --- 1. PROFİL RESMİ VE KULLANICI BİLGİSİ ---
-    string userResmi = "/img/undraw_profile.svg";
-    string myRole = "User";
-    string myId = ""; // IdentityUser'da ID string (GUID) olur, int olmaz.
+    var currentUser = await UserManager.GetUserAsync(User);
+    var myNotifications = new List<Notification>();
+    int unreadCount = 0;
 
-    if (User.Identity.IsAuthenticated)
+    if (currentUser != null)
     {
-        // UserName genellikle Identity'de PascalCase yazılır.
-        var aktifKullanici = UserRepo.GetAll().FirstOrDefault(x => x.UserName == User.Identity.Name);
-
-        if (aktifKullanici != null)
+        var allNotifs = NotifRepo.GetAll();
+        if (allNotifs != null)
         {
-            if (!string.IsNullOrEmpty(aktifKullanici.PhotoUrl))
-                userResmi = aktifKullanici.PhotoUrl;
+            var userRoles = await UserManager.GetRolesAsync(currentUser);
 
-            // AppUser'da "Role" property'si olmadığı için, rolü sistemden (Cookie'den) çekiyoruz
-            if (User.IsInRole("Admin")) myRole = "Admin";
+            myNotifications = allNotifs.Where(n =>
+                (n.TargetRole == "All") ||
+                (n.TargetRole == "Personal" && n.TargetUserId == currentUser.Id) ||
+                (userRoles.Contains(n.TargetRole))
+            ).OrderByDescending(n => n.Date).Take(5).ToList();
 
-            myId = aktifKullanici.Id; // String ID atanıyor
+            unreadCount = myNotifications.Count(n => !n.IsRead);
         }
     }
-
-    // --- 2. BİLDİRİM MANTIĞI (SADECE OKUNMAMIŞLAR) ---
-    var myNotifications = new List<Notification>();
-    if (NotifRepo != null)
+    string userProfilePic = "/img/undraw_profile.svg";
+    if (currentUser != null && !string.IsNullOrEmpty(currentUser.PhotoUrl))
     {
-        myNotifications = NotifRepo.GetAll()
-            .Where(n =>
-                // 1. Kural: Sadece bana ait olanlar
-                (n.TargetUserId.ToString() == myId)
-                &&
-                // 2. Kural: SADECE OKUNMAMIŞ OLANLAR (Bunu eklemezsen hep geri gelir!)
-                n.IsRead == false
-            )
-            .OrderByDescending(n => n.Date)
-            .Take(5)
-            .ToList();
+        userProfilePic = currentUser.PhotoUrl;
     }
 }
 
@@ -54,13 +40,19 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
     <title>@ViewData["Title"] - Yönetim Paneli</title>
 
     <link href="~/vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
     <link href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i" rel="stylesheet">
 
     <link href="~/css/sb-admin-2.min.css" rel="stylesheet">
-    <link href="~/vendor/datatables/dataTables.bootstrap4.min.css" rel="stylesheet">
+
+    <link href="https://cdn.datatables.net/1.10.24/css/dataTables.bootstrap4.min.css" rel="stylesheet">
+
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 </head>
 
 <body id="page-top">
@@ -71,9 +63,9 @@
 
             <a class="sidebar-brand d-flex align-items-center justify-content-center" href="/Admin/Index">
                 <div class="sidebar-brand-icon rotate-n-15">
-                    <i class="fas fa-laugh-wink"></i>
+                    <i class="fas fa-gamepad"></i>
                 </div>
-                <div class="sidebar-brand-text mx-3">Yönetici <sup>Panel</sup></div>
+                <div class="sidebar-brand-text mx-3">Admin Panel</div>
             </a>
 
             <hr class="sidebar-divider my-0">
@@ -81,13 +73,19 @@
             <li class="nav-item active">
                 <a class="nav-link" href="/Admin/Index">
                     <i class="fas fa-fw fa-tachometer-alt"></i>
-                    <span>Dashboard</span>
+                    <span>Ana Panel</span>
+                </a>
+            </li>
+
+            <li class="nav-item bg-success rounded mx-2 mt-2">
+                <a class="nav-link text-white text-center font-weight-bold py-2" href="/Home/Index">
+                    <i class="fas fa-home mr-1"></i> Siteye Dön
                 </a>
             </li>
 
             <hr class="sidebar-divider">
 
-            <div class="sidebar-heading">İçerik Yönetimi</div>
+            <div class="sidebar-heading">YÖNETİM</div>
 
             <li class="nav-item">
                 <a class="nav-link" href="/Admin/Users">
@@ -97,34 +95,60 @@
             </li>
 
             <li class="nav-item">
-                <a class="nav-link" href="/Admin/Questions">
-                    <i class="fas fa-fw fa-comments"></i> <span>Forumlar</span>
+                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseForum" aria-expanded="true">
+                    <i class="fas fa-fw fa-comments"></i>
+                    <span>İçerik Yönetimi</span>
+                </a>
+                <div id="collapseForum" class="collapse" data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        <a class="collapse-item" href="/Admin/Questions">Sorular</a>
+                        <a class="collapse-item" href="/Admin/Answers">Cevaplar</a>
+                        <a class="collapse-item" href="/Admin/Categories">Kategoriler</a>
+                    </div>
+                </div>
+            </li>
+
+            <hr class="sidebar-divider">
+
+            <div class="sidebar-heading">DESTEK & RAPOR</div>
+
+            <li class="nav-item">
+                <a class="nav-link" href="/Admin/ReportList">
+                    <i class="fas fa-fw fa-exclamation-triangle"></i>
+                    <span>Şikayetler</span>
                 </a>
             </li>
 
             <li class="nav-item">
-                <a class="nav-link" href="/Admin/Categories">
-                    <i class="fas fa-fw fa-folder"></i>
-                    <span>Kategoriler</span>
+                <a class="nav-link" href="/Admin/SupportList">
+                    <i class="fas fa-fw fa-headset"></i>
+                    <span>Destek Talepleri</span>
                 </a>
             </li>
 
+            <li class="nav-item">
+                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseNotif" aria-expanded="true">
+                    <i class="fas fa-fw fa-bell"></i>
+                    <span>Bildirimler</span>
+                </a>
+                <div id="collapseNotif" class="collapse" data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        <a class="collapse-item" href="/Admin/SendNotification">Bildirim Gönder</a>
+                        <a class="collapse-item" href="/Admin/AllNotifications">Geçmiş Bildirimler</a>
+                    </div>
+                </div>
+            </li>
+
+            <hr class="sidebar-divider">
+
             @if (User.IsInRole("Admin"))
             {
-                <hr class="sidebar-divider">
-                <div class="sidebar-heading">Yönetici Araçları</div>
+                <div class="sidebar-heading">SİSTEM (Admin)</div>
 
                 <li class="nav-item">
                     <a class="nav-link" href="/Admin/RoleManagement">
                         <i class="fas fa-fw fa-user-shield"></i>
-                        <span>Yetki Yönetimi</span>
-                    </a>
-                </li>
-
-                <li class="nav-item">
-                    <a class="nav-link" href="/Admin/SendNotification">
-                        <i class="fas fa-fw fa-paper-plane"></i>
-                        <span>Bildirim Gönder</span>
+                        <span>Roller & Yetkiler</span>
                     </a>
                 </li>
 
@@ -135,21 +159,13 @@
                     </a>
                 </li>
             }
-
-            <hr class="sidebar-divider">
-            <li class="nav-item">
-                <a class="nav-link" href="/Home/Index">
-                    <i class="fas fa-fw fa-globe"></i>
-                    <span>Siteye Dön</span>
-                </a>
-            </li>
-
             <div class="text-center d-none d-md-inline">
                 <button class="rounded-circle border-0" id="sidebarToggle"></button>
             </div>
 
         </ul>
         <div id="content-wrapper" class="d-flex flex-column">
+
             <div id="content">
 
                 <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
@@ -163,40 +179,38 @@
                         <li class="nav-item dropdown no-arrow mx-1">
                             <a class="nav-link dropdown-toggle" href="#" id="alertsDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 <i class="fas fa-bell fa-fw"></i>
-                                @if (myNotifications.Count > 0)
+                                @if (unreadCount > 0)
                                 {
-                                    <span class="badge badge-danger badge-counter">@myNotifications.Count</span>
+                                    <span class="badge badge-danger badge-counter">@unreadCount+</span>
                                 }
                             </a>
-
                             <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in" aria-labelledby="alertsDropdown">
-                                <h6 class="dropdown-header">Bildirim Merkezi</h6>
-
-                                @if (myNotifications.Count == 0)
+                                <h6 class="dropdown-header">
+                                    Son Bildirimler
+                                </h6>
+                                @if (myNotifications.Count > 0)
                                 {
-                                    <a class="dropdown-item d-flex align-items-center" href="#">
-                                        <div class="mr-3">
-                                            <div class="icon-circle bg-secondary"><i class="fas fa-info text-white"></i></div>
-                                        </div>
-                                        <div><span class="font-weight-bold">Hiç yeni bildirim yok.</span></div>
-                                    </a>
-                                }
-                                else
-                                {
-                                    @foreach (var notif in myNotifications)
+                                    foreach (var notif in myNotifications)
                                     {
-                                        <a class="dropdown-item d-flex align-items-center" href="#">
+                                        <a class="dropdown-item d-flex align-items-center" href="/Admin/AllNotifications">
                                             <div class="mr-3">
-                                                <div class="icon-circle bg-primary"><i class="fas fa-envelope text-white"></i></div>
+                                                <div class="icon-circle bg-primary">
+                                                    <i class="fas fa-file-alt text-white"></i>
+                                                </div>
                                             </div>
                                             <div>
-                                                <div class="small text-gray-500">@notif.Date.ToString("dd.MM.yyyy HH:mm")</div>
-                                                <span class="font-weight-bold">@notif.SenderName: @notif.Message</span>
+                                                <div class="small text-gray-500">@notif.Date.ToString("dd.MM.yyyy")</div>
+                                                <span class="font-weight-bold">@notif.Message</span>
                                             </div>
                                         </a>
                                     }
                                 }
-                                <a class="dropdown-item text-center small text-gray-500" href="/Admin/AllNotifications">Tüm Bildirimleri Gör</a>
+                                else
+                                {
+                                    <a class="dropdown-item text-center small text-gray-500" href="#">Bildirim yok</a>
+                                }
+
+                                <a class="dropdown-item text-center small text-gray-500" href="/Admin/AllNotifications">Tümünü Göster</a>
                             </div>
                         </li>
 
@@ -204,62 +218,53 @@
 
                         <li class="nav-item dropdown no-arrow">
                             <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                <img class="img-profile rounded-circle mr-2" src="@userResmi" style="width: 32px; height: 32px; object-fit: cover;">
-                                <span class="mr-2 d-none d-lg-inline text-gray-600 small font-weight-bold">@User.Identity.Name</span>
+                                <span class="mr-2 d-none d-lg-inline text-gray-600 small">@(currentUser != null ? currentUser.UserName : "Admin")</span>
+                                <img class="img-profile rounded-circle" src="@userProfilePic" style="object-fit:cover;">
                             </a>
-
                             <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in" aria-labelledby="userDropdown">
-                                <a class="dropdown-item" href="/Admin/Profile">
-                                    <i class="fas fa-user fa-sm fa-fw mr-2 text-gray-400"></i> Profilim
+                                <a class="dropdown-item" href="/Account/Profile">
+                                    <i class="fas fa-user fa-sm fa-fw mr-2 text-gray-400"></i>
+                                    Profilim
                                 </a>
                                 <div class="dropdown-divider"></div>
                                 <a class="dropdown-item" href="#" data-toggle="modal" data-target="#logoutModal">
-                                    <i class="fas fa-sign-out-alt fa-sm fa-fw mr-2 text-gray-400"></i> Çıkış Yap
+                                    <i class="fas fa-sign-out-alt fa-sm fa-fw mr-2 text-gray-400"></i>
+                                    Çıkış Yap
                                 </a>
-                            </div>
-                        </li>
-
-                        <li class="nav-item dropdown no-arrow mx-1">
-                            <a class="nav-link dropdown-toggle" href="#" id="themeDropdown" role="button" data-toggle="dropdown">
-                                <i class="fas fa-palette fa-fw"></i>
-                            </a>
-                            <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in">
-                                <h6 class="dropdown-header">Tema Rengi Seç</h6>
-                                <a class="dropdown-item" href="#" onclick="changeTheme(0)">🔵 Orijinal (Mavi)</a>
-
-                                <a class="dropdown-item" href="#" onclick="changeTheme(45)">🟣 Mor</a>
-
-                                <a class="dropdown-item" href="#" onclick="changeTheme(135)">🔴 Kırmızı</a>
-
-                                <a class="dropdown-item" href="#" onclick="changeTheme(165)">🟠 Turuncu</a>
-
-                                <a class="dropdown-item" href="#" onclick="changeTheme(255)">🟢 Yeşil</a>
                             </div>
                         </li>
 
                     </ul>
-                </nav>
-                <div class="container-fluid">
-                    @RenderBody()
-                </div>
 
+                </nav>
+                @RenderBody()
             </div>
+            <footer class="sticky-footer bg-white">
+                <div class="container my-auto">
+                    <div class="copyright text-center my-auto">
+                        <span>Copyright &copy; SoruCevapPortali @DateTime.Now.Year</span>
+                    </div>
+                </div>
+            </footer>
         </div>
     </div>
-
-    <a class="scroll-to-top rounded" href="#page-top"><i class="fas fa-angle-up"></i></a>
+    <a class="scroll-to-top rounded" href="#page-top">
+        <i class="fas fa-angle-up"></i>
+    </a>
 
     <div class="modal fade" id="logoutModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="exampleModalLabel">Ayrılıyor musunuz?</h5>
-                    <button class="close" type="button" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+                    <h5 class="modal-title" id="exampleModalLabel">Ayrılmaya Hazır mısın?</h5>
+                    <button class="close" type="button" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">×</span>
+                    </button>
                 </div>
-                <div class="modal-body">Oturumu kapatmak istediğinize emin misiniz?</div>
+                <div class="modal-body">Oturumunu sonlandırmak istiyorsan aşağıdaki "Çıkış Yap" butonuna bas.</div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" type="button" data-dismiss="modal">İptal</button>
-                    <a class="btn btn-primary" href="/Auth/Logout">Çıkış Yap</a>
+                    <a class="btn btn-primary" href="/Account/Logout">Çıkış Yap</a>
                 </div>
             </div>
         </div>
@@ -267,46 +272,44 @@
 
     <script src="~/vendor/jquery/jquery.min.js"></script>
     <script src="~/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+
     <script src="~/vendor/jquery-easing/jquery.easing.min.js"></script>
+
     <script src="~/js/sb-admin-2.min.js"></script>
 
-    <script>
-        $(document).ready(function() {
-            // Çan ikonuna tıklanınca
-            $("#alertsDropdown").click(function() {
-                // Kırmızı sayıyı (badge) anında gizle
-                $(".badge-counter").hide();
-
-                // Sunucuya "Okundu" bilgisini gönder
-                $.post("/Admin/MarkNotificationsAsRead", function(data) {
-                    console.log("Bildirimler okundu işaretlendi.");
-                });
-            });
-        });
-    </script>
-
+    <script src="https://cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.10.24/js/dataTables.bootstrap4.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
 
     <script>
-        function changeTheme(hue) {
-            if (hue === 0) {
-                document.documentElement.style.filter = "none";
-                localStorage.removeItem("siteTheme");
-                return;
-            }
-            // Dereceyi uygula
-            var filterVal = "hue-rotate(" + hue + "deg)";
-            document.documentElement.style.filter = filterVal; // body yerine html'e uygularsak daha garanti olur
-            localStorage.setItem("siteTheme", hue);
-        }
+        var connection = new signalR.HubConnectionBuilder().withUrl("/general-hub").build();
+        connection.on("ReceiveNotification", function (message) {
+            var badge = $(".badge-counter");
+            var currentCount = parseInt(badge.text());
 
-        $(document).ready(function() {
-            var savedTheme = localStorage.getItem("siteTheme");
-            if (savedTheme) {
-                document.documentElement.style.filter = "hue-rotate(" + savedTheme + "deg)";
+            if (isNaN(currentCount)) {
+                currentCount = 0;
             }
+            badge.text((currentCount + 1) + "+");
+            badge.show();
+            var alertDiv = document.createElement("div");
+            alertDiv.className = "alert alert-warning alert-dismissible fade show fixed-top m-3 shadow";
+            alertDiv.style.zIndex = "9999";
+            alertDiv.innerHTML = `
+                <i class="fas fa-bell mr-2"></i> <strong>Bildirim:</strong> ${message}
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+            `;
+            document.body.appendChild(alertDiv);
+            setTimeout(function() {
+                $(alertDiv).alert('close');
+            }, 5000);
+        });
+        connection.start().then(function () {
+            console.log("SignalR Bağlantısı Başarılı!");
+        }).catch(function (err) {
+            return console.error(err.toString());
         });
     </script>
-
     @await RenderSectionAsync("Scripts", required: false)
 
 </body>

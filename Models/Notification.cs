@@ -12,8 +12,6 @@ namespace _20241129402SoruCevapPortali.Models
         public bool IsRead { get; set; } = false;
 
         public string TargetRole { get; set; }
-
-        // DÜZELTME: int? yerine string? yapıyoruz
         public string? TargetUserId { get; set; }
 
         public string SenderName { get; set; }

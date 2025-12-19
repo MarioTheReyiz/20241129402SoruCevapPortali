@@ -16,17 +16,12 @@
     <div class="card-body">
         <div class="alert alert-warning">
             <strong>Dikkat:</strong> Buradan kullanıcıların sistemdeki rollerini değiştirebilirsiniz.
-            <ul>
-                <li><strong>Admin:</strong> Tam yetki. Yetki verebilir.</li>
-                <li><strong>Moderator:</strong> Paneli kullanır ama yetki veremez.</li>
-                <li><strong>User:</strong> Panele giremez.</li>
-            </ul>
         </div>
         <div class="table-responsive">
             <table class="table table-bordered" width="100%" cellspacing="0">
                 <thead>
                     <tr>
-                        <th>Kullanıcı Adı</th>
+                        <th>Kullanıcı</th>
                         <th>Mevcut Rol</th>
                         <th>Rolü Değiştir</th>
                     </tr>
@@ -36,11 +31,15 @@
                     {
                         var roles = await UserManager.GetRolesAsync(item);
                         var userRole = roles.FirstOrDefault() ?? "User";
+                        string userPic = "/img/undraw_profile.svg";
+                        if (!string.IsNullOrEmpty(item.PhotoUrl)) { userPic = item.PhotoUrl; }
 
                         <tr>
                             <td>
-                                <img src="/img/undraw_profile.svg" width="30" class="rounded-circle mr-2">
-                                @item.UserName
+                                <div class="d-flex align-items-center">
+                                    <img src="@userPic" width="35" height="35" class="rounded-circle mr-2" style="object-fit:cover;">
+                                    <span class="font-weight-bold">@item.UserName</span>
+                                </div>
                             </td>
                             <td>
                                 @if (userRole == "Admin")
@@ -49,10 +48,12 @@
                                 }
                                 else if (userRole == "Moderator")
                                 {
+
                                     <span class="badge bg-warning text-dark">Moderator</span>
                                 }
                                 else
                                 {
+
                                     <span class="badge bg-secondary text-white">User</span>
                                 }
                             </td>

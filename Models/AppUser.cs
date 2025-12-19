@@ -12,8 +12,8 @@ namespace _20241129402SoruCevapPortali.Models
         // İlişkiler
         public virtual List<Question>? Questions { get; set; }
         public virtual List<Answer>? Answers { get; set; }
-        public int ExperiencePoints { get; set; } = 0; // Toplam Puan
-        public int Level { get; set; } = 1;            // Mevcut Seviye
-        public string Badge { get; set; } = "Noob";    // Rütbe/Rozet
+        public int ExperiencePoints { get; set; } = 0; 
+        public int Level { get; set; } = 1;  
+        public string Badge { get; set; } = "Noob";   
     }
 }

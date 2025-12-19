@@ -1,58 +1,113 @@
 ﻿@model List<_20241129402SoruCevapPortali.Models.UserReport>
 @{
-    ViewData["Title"] = "Raporlar";
+    ViewData["Title"] = "Rapor Listesi";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
 }
 
-<div class="container mt-4">
-    <h3 class="text-white mb-3"><i class="fas fa-exclamation-triangle text-warning"></i> Bekleyen Şikayetler</h3>
+<div class="container-fluid">
 
-    <div class="table-responsive">
-        <table class="table table-dark table-hover border-secondary">
-            <thead>
-                <tr class="text-warning">
-                    <th>Tarih</th>
-                    <th>Şikayet Eden</th>
-                    <th>Şikayet Edilen (ID)</th>
-                    <th>Sebep</th>
-                    <th>Açıklama</th>
-                    <th>Kanıt</th>
-                    <th>İşlem</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var item in Model)
+    <h1 class="h3 mb-2 text-gray-800">Şikayet & Rapor Yönetimi</h1>
+    <p class="mb-4">Kullanıcılar tarafından bildirilen kural ihlallerini buradan inceleyip sonuçlandırabilirsiniz.</p>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+            <h6 class="m-0 font-weight-bold text-primary">Bekleyen Raporlar</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Tarih</th>
+                            <th>Şikayet Eden</th>
+                            <th>Şikayet Edilen (ID)</th>
+                            <th>Sebep</th>
+                            <th>Açıklama</th>
+                            <th>Kanıt</th>
+                            <th>İşlem</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td>@item.Date.ToString("dd.MM.yyyy HH:mm")</td>
+                                <td>
+                                    <span class="badge badge-secondary">@item.ReporterId</span>
+                                </td>
+                                <td>
+                                    <a href="/Admin/DeleteUser/@item.ReportedUserId" class="text-danger font-weight-bold" onclick="return confirm('Bu kullanıcıyı banlamak/silmek istediğine emin misin?');">
+                                        @item.ReportedUserId <i class="fas fa-ban ml-1"></i>
+                                    </a>
+                                </td>
+                                <td>
+                                    @if (item.Reason == "Hakaret")
+                                    {
+                                        <span class="badge badge-danger">Hakaret</span>
+                                    }
+                                    else if (item.Reason == "Spam")
+                                    {
+
+                                        <span class="badge badge-warning text-dark">Spam</span>
+                                    }
+                                    else
+                                    {
+
+                                        <span class="badge badge-info">@item.Reason</span>
+                                    }
+                                </td>
+                                <td>
+                                    <div style="max-height: 100px; overflow-y:auto;">
+                                        @item.Description
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    @if (!string.IsNullOrEmpty(item.ScreenshotUrl) && item.ScreenshotUrl != "Resim yok")
+                                    {
+                                        <a href="@item.ScreenshotUrl" target="_blank" class="btn btn-info btn-circle btn-sm" title="Kanıtı Gör">
+                                            <i class="fas fa-image"></i>
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small">Yok</span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    <a href="/Admin/ReviewReport/@item.Id" class="btn btn-success btn-icon-split btn-sm" onclick="return confirm('İncelendi olarak işaretlensin mi?');">
+                                        <span class="icon text-white-50">
+                                            <i class="fas fa-check"></i>
+                                        </span>
+                                        <span class="text">Kapat</span>
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+
+                @if (Model.Count == 0)
                 {
-                    <tr>
-                        <td>@item.Date.ToString("dd.MM.yyyy HH:mm")</td>
-                        <td>@item.ReporterId</td>
-                        <td>@item.ReportedUserId</td>
-                        <td><span class="badge bg-danger">@item.Reason</span></td>
-                        <td>@item.Description</td>
-                        <td>
-                            @if (!string.IsNullOrEmpty(item.ScreenshotUrl) && item.ScreenshotUrl != "Resim yok")
-                            {
-                                <a href="@item.ScreenshotUrl" target="_blank" class="btn btn-sm btn-outline-info">
-                                    <i class="fas fa-image"></i> Gör
-                                </a>
-                            }
-                            else
-                            {
-                                <span class="text-muted">-</span>
-                            }
-                        </td>
-                        <td>
-                            <a href="/Admin/ReviewReport/@item.Id" class="btn btn-sm btn-success" onclick="return confirm('Bu raporu incelendi olarak işaretlemek istiyor musunuz?');">
-                                <i class="fas fa-check"></i> Tamamla
-                            </a>
-                        </td>
-                    </tr>
+                    <div class="text-center p-5">
+                        <img class="img-fluid px-3 px-sm-4 mt-3 mb-4" style="width: 15rem;" src="/img/undraw_posting_photo.svg" alt="...">
+                        <h5 class="text-gray-500">Tebrikler! Bekleyen hiç şikayet yok.</h5>
+                    </div>
                 }
-            </tbody>
-        </table>
-
-        @if (Model.Count == 0)
-        {
-            <div class="alert alert-success text-center">Harika! Bekleyen hiç şikayet yok.</div>
-        }
+            </div>
+        </div>
     </div>
+
 </div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            $('#dataTable').DataTable({
+                "language": {
+                    "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Turkish.json"
+                },
+                "order": [[ 0, "desc" ]]
+            });
+        });
+    </script>
+}

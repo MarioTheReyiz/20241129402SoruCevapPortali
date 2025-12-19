@@ -35,6 +35,12 @@
                         {
                             <li class="nav-item"><a class="nav-link text-white" href="/Home/MyQuestions">Sorularım</a></li>
                             <li class="nav-item"><a class="nav-link text-white" href="/Home/CreateQuestion">Soru Sor</a></li>
+                            @if (User.Identity.IsAuthenticated)
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link text-dark" href="/Support/Index">Destek</a>
+                                </li>
+                            }
 
                             @if (User.IsInRole("Admin") || User.IsInRole("Moderator"))
                             {
@@ -46,7 +52,6 @@
                     <ul class="navbar-nav ms-auto align-items-center">
                         @if (SignInManager.IsSignedIn(User))
                         {
-                            // Kullanıcıyı veritabanından çekiyoruz ki güncel foto gelsin
                             var currentUser = await UserManager.GetUserAsync(User);
                             var photoPath = currentUser?.PhotoUrl ?? "/img/undraw_profile.svg";
                             var userName = currentUser?.UserName ?? User.Identity.Name;
@@ -99,15 +104,12 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
     <script>
-        // Basit Bildirim Kodu
         var connection = new signalR.HubConnectionBuilder().withUrl("/generalHub").build();
         connection.on("ReceiveNotification", function(msg) {
             alert("🔔 " + msg);
-            $("#notif-badge").text("1").show(); // Kırmızı nokta yak
+            $("#notif-badge").text("1").show();
         });
         connection.start().catch(err => console.error(err));
-
-        // Sayfa açılınca bildirim sayısını kontrol et
         $(document).ready(function() {
             $.get("/Home/GetUnreadCount", function(c) {
                 if(c > 0) $("#notif-badge").text(c).show();

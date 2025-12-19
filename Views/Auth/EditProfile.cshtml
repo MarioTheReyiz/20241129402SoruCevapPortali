@@ -1,8 +1,6 @@
 ﻿@model _20241129402SoruCevapPortali.Models.AppUser
 @{
     ViewData["Title"] = "Profili Düzenle";
-
-    // --- LEVEL HESAPLAMA ---
     int levelCap = 100;
     int currentTotalXp = Model.ExperiencePoints;
     int currentLevelBaseXp = (Model.Level - 1) * levelCap;

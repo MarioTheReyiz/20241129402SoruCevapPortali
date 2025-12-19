@@ -3,86 +3,159 @@ using _20241129402SoruCevapPortali.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 
 namespace _20241129402SoruCevapPortali.Controllers
 {
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Moderator")]
     public class AdminController : Controller
     {
         private readonly UserManager<AppUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
+
+        // Repositories
         private readonly IRepository<Question> _questionRepo;
         private readonly IRepository<Category> _categoryRepo;
-        private readonly IRepository<SupportTicket> _ticketRepo; // EKLENDİ
-        private readonly IRepository<TicketMessage> _messageRepo; // EKLENDİ
-        private readonly IRepository<UserReport> _reportRepo; // EKLENDİ
-        private readonly IRepository<Notification> _notificationRepo; // EKLENDİ
+        private readonly IRepository<Answer> _answerRepo;
+        private readonly IRepository<Log> _logRepo;
+        private readonly IRepository<SupportTicket> _ticketRepo;
+        private readonly IRepository<TicketMessage> _messageRepo;
+        private readonly IRepository<UserReport> _reportRepo;
+        private readonly IRepository<Notification> _notificationRepo;
 
         public AdminController(
             UserManager<AppUser> userManager,
             RoleManager<IdentityRole> roleManager,
             IRepository<Question> questionRepo,
             IRepository<Category> categoryRepo,
-            IRepository<SupportTicket> ticketRepo, // EKLENDİ
-            IRepository<TicketMessage> messageRepo, // EKLENDİ
-            IRepository<UserReport> reportRepo, // EKLENDİ
-            IRepository<Notification> notificationRepo // EKLENDİ
+            IRepository<Answer> answerRepo,
+            IRepository<Log> logRepo,
+            IRepository<SupportTicket> ticketRepo,
+            IRepository<TicketMessage> messageRepo,
+            IRepository<UserReport> reportRepo,
+            IRepository<Notification> notificationRepo
             )
         {
             _userManager = userManager;
             _roleManager = roleManager;
             _questionRepo = questionRepo;
             _categoryRepo = categoryRepo;
+            _answerRepo = answerRepo;
+            _logRepo = logRepo;
             _ticketRepo = ticketRepo;
             _messageRepo = messageRepo;
             _reportRepo = reportRepo;
             _notificationRepo = notificationRepo;
         }
-
-        // --- DASHBOARD ---
-        // --- DASHBOARD (İSTATİSTİKLER) ---
         public IActionResult Index()
         {
-            // 1. Toplam Üye Sayısı
             ViewBag.TotalUsers = _userManager.Users.Count();
-
-            // 2. Toplam Soru Sayısı
             ViewBag.TotalQuestions = _questionRepo.GetAll().Count();
 
-            // 3. Bekleyen (İncelenmemiş) Rapor Sayısı
-            ViewBag.PendingReports = _reportRepo.GetAll().Count(x => !x.IsReviewed);
+            var allReports = _reportRepo.GetAll();
+            ViewBag.PendingReports = allReports != null ? allReports.Count(x => !x.IsReviewed) : 0;
 
-            // 4. Açık (Cevap Bekleyen) Destek Talebi Sayısı
-            ViewBag.OpenTickets = _ticketRepo.GetAll().Count(x => !x.IsClosed);
+            var allTickets = _ticketRepo.GetAll();
+            ViewBag.OpenTickets = allTickets != null ? allTickets.Count(x => !x.IsClosed) : 0;
 
-            return View();
+            var recentReports = _reportRepo.GetAll()
+                                           .Where(x => !x.IsReviewed)
+                                           .OrderByDescending(x => x.Date)
+                                           .Take(5)
+                                           .ToList();
+
+            return View(recentReports);
         }
-
-        // --- KULLANICI YÖNETİMİ ---
-        public IActionResult UserList()
+        public IActionResult Users()
         {
-            var users = _userManager.Users.ToList();
-            return View(users);
+            return View(_userManager.Users.ToList());
         }
-
+        [HttpPost]
         public async Task<IActionResult> DeleteUser(string id)
         {
-            var user = await _userManager.FindByIdAsync(id);
-            if (user != null)
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (currentUser.Id == id)
             {
-                await _userManager.DeleteAsync(user);
+                return Json(new { success = false, message = "Kendi hesabınızı silemezsiniz!" });
             }
-            return RedirectToAction("UserList");
+
+            var targetUser = await _userManager.FindByIdAsync(id);
+            if (targetUser == null)
+            {
+                return Json(new { success = false, message = "Kullanıcı bulunamadı." });
+            }
+            if (await _userManager.IsInRoleAsync(targetUser, "Admin"))
+            {
+                return Json(new { success = false, message = "Diğer yöneticileri silemezsiniz!" });
+            }
+            var result = await _userManager.DeleteAsync(targetUser);
+            if (result.Succeeded)
+            {
+                return Json(new { success = true, message = "Kullanıcı silindi." });
+            }
+            else
+            {
+                return Json(new { success = false, message = "Silme işlemi sırasında hata oluştu." });
+            }
+        }
+        public IActionResult Questions()
+        {
+            var questions = _questionRepo.GetAll().OrderByDescending(x => x.CreatedDate).ToList();
+            var users = _userManager.Users.ToDictionary(u => u.Id, u => u);
+            ViewBag.Users = users;
+
+            return View(questions);
         }
 
-        // --- KATEGORİ YÖNETİMİ ---
-        public IActionResult CategoryList()
+        public IActionResult ForumDetails(int id)
         {
-            var values = _categoryRepo.GetAll();
-            return View(values);
+            var question = _questionRepo.GetById(id);
+            if (question == null) return RedirectToAction("Questions");
+
+            ViewBag.Answers = _answerRepo.GetAll().Where(x => x.QuestionId == id).OrderBy(x => x.Date).ToList();
+            var users = _userManager.Users.ToDictionary(u => u.Id, u => u);
+            ViewBag.Users = users;
+
+            return View(question);
+        }
+
+        public IActionResult DeleteQuestion(int id)
+        {
+            var q = _questionRepo.GetById(id);
+            if (q != null) _questionRepo.Delete(q);
+            return RedirectToAction("Questions");
+        }
+
+        [HttpGet]
+        public IActionResult EditQuestion(int id)
+        {
+            var q = _questionRepo.GetById(id);
+            if (q == null) return RedirectToAction("Questions");
+            ViewBag.Categories = new SelectList(_categoryRepo.GetAll(), "Id", "Name", q.CategoryId);
+            return View(q);
+        }
+
+        [HttpPost]
+        public IActionResult EditQuestion(Question p)
+        {
+            var question = _questionRepo.GetById(p.Id);
+            if (question != null)
+            {
+                question.Title = p.Title;
+                question.Content = p.Content;
+                question.CategoryId = p.CategoryId;
+                question.IsApproved = p.IsApproved;
+                _questionRepo.Update(question);
+            }
+            return RedirectToAction("Questions");
+        }
+        public IActionResult Categories()
+        {
+            return View(_categoryRepo.GetAll());
         }
 
         [HttpGet]
@@ -92,17 +165,58 @@ namespace _20241129402SoruCevapPortali.Controllers
         public IActionResult AddCategory(Category p)
         {
             _categoryRepo.Add(p);
-            return RedirectToAction("CategoryList");
+            return RedirectToAction("Categories");
         }
 
         public IActionResult DeleteCategory(int id)
         {
             var cat = _categoryRepo.GetById(id);
             if (cat != null) _categoryRepo.Delete(cat);
-            return RedirectToAction("CategoryList");
+            return RedirectToAction("Categories");
+        }
+        [HttpGet]
+        public IActionResult SendNotification()
+        {
+            var users = _userManager.Users.Select(x => new SelectListItem
+            {
+                Text = $"{x.UserName} ({x.Email})",
+                Value = x.Id
+            }).ToList();
+            users.Insert(0, new SelectListItem { Text = "", Value = "" });
+            ViewBag.UserList = users;
+            return View();
         }
 
-        // --- DESTEK TALEPLERİ (YENİ EKLENEN) ---
+        [HttpPost]
+        public IActionResult SendNotification(string message, string targetRole, string specificUserId)
+        {
+            if (!string.IsNullOrEmpty(message))
+            {
+                if (!string.IsNullOrEmpty(specificUserId))
+                {
+                    _notificationRepo.Add(new Notification { Message = message, TargetUserId = specificUserId, TargetRole = "Personal", SenderName = "Yönetim", Date = DateTime.Now });
+                }
+                else
+                {
+                    _notificationRepo.Add(new Notification { Message = message, TargetRole = targetRole ?? "All", SenderName = "Yönetim", Date = DateTime.Now });
+                }
+                TempData["Success"] = "Bildirim başarıyla gönderildi.";
+            }
+            return RedirectToAction("AllNotifications");
+        }
+
+        public IActionResult AllNotifications()
+        {
+            var unread = _notificationRepo.GetAll().Where(x => !x.IsRead).ToList();
+            foreach (var item in unread)
+            {
+                item.IsRead = true;
+                _notificationRepo.Update(item);
+            }
+
+            var list = _notificationRepo.GetAll().OrderByDescending(x => x.Date).ToList();
+            return View(list);
+        }
         public IActionResult SupportList()
         {
             var tickets = _ticketRepo.GetAll().Where(x => !x.IsClosed).OrderBy(x => x.CreatedDate).ToList();
@@ -112,6 +226,8 @@ namespace _20241129402SoruCevapPortali.Controllers
         public IActionResult SupportDetails(int id)
         {
             var ticket = _ticketRepo.GetById(id);
+            if (ticket == null) return RedirectToAction("SupportList");
+
             var messages = _messageRepo.GetAll().Where(x => x.SupportTicketId == id).OrderBy(x => x.Date).ToList();
             ViewBag.Messages = messages;
             return View(ticket);
@@ -123,39 +239,16 @@ namespace _20241129402SoruCevapPortali.Controllers
             var admin = await _userManager.GetUserAsync(User);
             var ticket = _ticketRepo.GetById(id);
 
-            if (ticket != null)
+            if (ticket != null && !string.IsNullOrEmpty(content))
             {
-                // 1. Admin Cevabını Kaydet
-                var msg = new TicketMessage
-                {
-                    SupportTicketId = id,
-                    SenderId = admin.Id,
-                    Content = content
-                };
-                _messageRepo.Add(msg);
+                _messageRepo.Add(new TicketMessage { SupportTicketId = id, SenderId = admin.Id, Content = content });
+                if (closeTicket) { ticket.IsClosed = true; _ticketRepo.Update(ticket); }
 
-                // 2. Kapatılacaksa kapat
-                if (closeTicket)
-                {
-                    ticket.IsClosed = true;
-                    _ticketRepo.Update(ticket);
-                }
-
-                // 3. Kullanıcıya BİLDİRİM Gönder
-                var notif = new Notification
-                {
-                    Message = $"Destek talebine cevap geldi: {ticket.Subject}",
-                    TargetUserId = ticket.UserId,
-                    TargetRole = "User",
-                    SenderName = "Yönetim",
-                    Date = System.DateTime.Now
-                };
-                _notificationRepo.Add(notif);
+                _notificationRepo.Add(new Notification { Message = $"Destek talebiniz yanıtlandı: {ticket.Subject}", TargetUserId = ticket.UserId, TargetRole = "User", SenderName = "Destek Ekibi", Date = DateTime.Now });
             }
             return RedirectToAction("SupportList");
         }
 
-        // --- RAPORLAR (YENİ EKLENEN) ---
         public IActionResult ReportList()
         {
             var reports = _reportRepo.GetAll().Where(x => !x.IsReviewed).OrderByDescending(x => x.Date).ToList();
@@ -165,12 +258,53 @@ namespace _20241129402SoruCevapPortali.Controllers
         public IActionResult ReviewReport(int id)
         {
             var report = _reportRepo.GetById(id);
-            if (report != null)
-            {
-                report.IsReviewed = true;
-                _reportRepo.Update(report);
-            }
+            if (report != null) { report.IsReviewed = true; _reportRepo.Update(report); }
             return RedirectToAction("ReportList");
+        }
+        [Authorize(Roles = "Admin")]
+        [HttpGet]
+        public IActionResult RoleManagement()
+        {
+            var users = _userManager.Users.ToList();
+            return View(users);
+        }
+        [Authorize(Roles = "Admin")]
+        [HttpPost]
+        public async Task<IActionResult> UpdateRole(string id, string newRole)
+        {
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (currentUser.Id == id) return Json(new { success = false, message = "GÜVENLİK UYARISI: Kendi yetkinizi değiştiremezsiniz!" });
+
+            var targetUser = await _userManager.FindByIdAsync(id);
+            if (targetUser == null) return Json(new { success = false, message = "Kullanıcı bulunamadı!" });
+
+            var currentRoles = await _userManager.GetRolesAsync(targetUser);
+            await _userManager.RemoveFromRolesAsync(targetUser, currentRoles);
+
+            if (!await _roleManager.RoleExistsAsync(newRole)) await _roleManager.CreateAsync(new IdentityRole(newRole));
+
+            await _userManager.AddToRoleAsync(targetUser, newRole);
+
+            return Json(new { success = true, message = $"{targetUser.UserName} kullanıcısı artık {newRole} yetkisine sahip." });
+        }
+        [Authorize(Roles = "Admin")]
+        public IActionResult Logs()
+        {
+            return View(_logRepo.GetAll().OrderByDescending(x => x.Date).ToList());
+        }
+        public IActionResult Answers()
+        {
+            var answers = _answerRepo.GetAll().OrderByDescending(x => x.Date).ToList();
+            var users = _userManager.Users.ToDictionary(u => u.Id, u => u);
+            ViewBag.Users = users;
+            return View(answers);
+        }
+
+        public IActionResult DeleteAnswer(int id)
+        {
+            var ans = _answerRepo.GetById(id);
+            if (ans != null) _answerRepo.Delete(ans);
+            return RedirectToAction("Answers");
         }
     }
 }

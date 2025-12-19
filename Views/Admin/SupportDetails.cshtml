@@ -1,56 +1,80 @@
 ﻿@model _20241129402SoruCevapPortali.Models.SupportTicket
 @{
-    ViewData["Title"] = "Destek Detayı";
+    ViewData["Title"] = "Talep Detayı";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
 }
 
-<div class="container mt-4">
-    <div class="card bg-dark border-info">
-        <div class="card-header bg-info text-dark fw-bold d-flex justify-content-between">
-            <span>Ticket #@Model.Id : @Model.Subject</span>
-            <a href="/Admin/SupportList" class="btn btn-sm btn-dark">Geri Dön</a>
-        </div>
-        <div class="card-body" style="height: 400px; overflow-y: auto;">
-            @if (ViewBag.Messages != null)
-            {
-                foreach (var msg in ViewBag.Messages as List<_20241129402SoruCevapPortali.Models.TicketMessage>)
-                {
-                    // Mesajı kimin attığını anlamak için basit kontrol (Admin ID ile User ID kıyaslaması yapılabilir ama şimdilik SenderId'ye bakalım)
-                    // AdminController'da AdminReply yaparken SenderId = admin.Id yapıyoruz.
-                    // Burada görsel ayrım için basit bir mantık kuralım: Eğer mesaj sahibi Ticket sahibi değilse Admin'dir.
+<div class="container-fluid">
 
-                    bool isAdminMsg = msg.SenderId != Model.UserId;
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 text-gray-800">Talep #@Model.Id</h1>
+        <a href="/Admin/SupportList" class="btn btn-secondary btn-sm shadow-sm"><i class="fas fa-arrow-left"></i> Listeye Dön</a>
+    </div>
 
-                    <div class="d-flex mb-3 @(isAdminMsg ? "justify-content-end" : "justify-content-start")">
-                        <div class="card text-white @(isAdminMsg ? "bg-primary border-primary" : "bg-secondary border-secondary")" style="max-width: 70%;">
-                            <div class="card-header py-1 px-2 small fw-bold">
-                                @(isAdminMsg ? "Yönetim" : "Kullanıcı") - @msg.Date.ToString("HH:mm")
-                            </div>
-                            <div class="card-body py-2 px-3">
-                                @msg.Content
-                            </div>
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">@Model.Subject</h6>
+                </div>
+                <div class="card-body" style="background-color: #f8f9fc;">
+                    <div class="chat-box" style="height: 400px; overflow-y: auto; padding: 10px;">
+                        @if (ViewBag.Messages != null)
+                        {
+                            foreach (var msg in ViewBag.Messages as List<_20241129402SoruCevapPortali.Models.TicketMessage>)
+                            {
+                                bool isAdmin = msg.SenderId != Model.UserId;
+
+                                <div class="d-flex mb-3 @(isAdmin ? "justify-content-end" : "justify-content-start")">
+                                    <div class="p-3 rounded shadow-sm text-white"
+                                         style="max-width: 75%; background-color: @(isAdmin ? "#4e73df" : "#858796");">
+                                        <div class="small text-white-50 mb-1">
+                                            @(isAdmin ? "Destek Ekibi" : "Kullanıcı") • @msg.Date.ToString("HH:mm")
+                                        </div>
+                                        <div>@msg.Content</div>
+                                    </div>
+                                </div>
+                            }
+                        }
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <form asp-action="AdminReply" method="post">
+                        <input type="hidden" name="id" value="@Model.Id" />
+
+                        <div class="form-group">
+                            <textarea name="content" class="form-control" rows="3" placeholder="Yanıtınız buraya yazın..."></textarea>
                         </div>
-                    </div>
-                }
-            }
+
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="custom-control custom-checkbox">
+                                <input type="checkbox" class="custom-control-input" id="closeTicketCheck" name="closeTicket" value="true">
+                                <label class="custom-control-label text-danger font-weight-bold" for="closeTicketCheck">Yanıtla ve Talebi Kapat</label>
+                            </div>
+                            <button type="submit" class="btn btn-primary px-4 font-weight-bold">
+                                <i class="fas fa-paper-plane"></i> Gönder
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
-        <div class="card-footer">
-            <form asp-action="AdminReply" method="post">
-                <input type="hidden" name="id" value="@Model.Id" />
 
-                <div class="mb-2">
-                    <textarea name="content" class="form-control bg-black text-white border-secondary" rows="3" placeholder="Cevabınızı yazın..."></textarea>
+        <div class="col-lg-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Kullanıcı Bilgileri</h6>
                 </div>
-
-                <div class="d-flex justify-content-between align-items-center">
-                    <div class="form-check text-white">
-                        <input class="form-check-input" type="checkbox" name="closeTicket" value="true" id="closeCheck">
-                        <label class="form-check-label" for="closeCheck">
-                            Cevapla ve Konuyu Kapat
-                        </label>
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <i class="fas fa-user-circle fa-5x text-gray-300"></i>
                     </div>
-                    <button type="submit" class="btn btn-info fw-bold"><i class="fas fa-paper-plane"></i> Gönder</button>
+                    <h5>ID: <span class="badge badge-light">@Model.UserId</span></h5>
+                    <hr>
+                    <a href="/Admin/Users" class="btn btn-info btn-sm btn-block">Kullanıcı Profiline Git</a>
                 </div>
-            </form>
+            </div>
         </div>
     </div>
+
 </div>

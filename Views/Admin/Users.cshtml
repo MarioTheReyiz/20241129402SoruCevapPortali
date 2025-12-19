@@ -1,65 +1,84 @@
-﻿@using _20241129402SoruCevapPortali.Models
-@using Microsoft.AspNetCore.Identity
-
-@* Kullanıcıları ve Rolleri yönetmek için UserManager ekliyoruz *@
-@inject UserManager<AppUser> UserManager
-@model List<AppUser>
-
+﻿@model List<_20241129402SoruCevapPortali.Models.AppUser>
 @{
     ViewData["Title"] = "Kullanıcılar";
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
 }
 
-<div class="card shadow mb-4">
-    <div class="card-header py-3">
-        <h6 class="m-0 font-weight-bold text-primary">Kullanıcı Listesi</h6>
-    </div>
-    <div class="card-body">
-        <table class="table table-bordered">
-            <thead>
-                <tr>
-                    <th>E-Posta</th>
-                    <th>Kullanıcı Adı</th>
-                    <th>Rol</th>
-                    <th>İşlem</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var item in Model)
-                {
-                    var roller = await UserManager.GetRolesAsync(item);
-                    var userRole = roller.FirstOrDefault() ?? "Rol Yok";
+<div class="container-fluid">
+    <h1 class="h3 mb-2 text-gray-800">Kullanıcı Listesi</h1>
 
-                    <tr id="u_@item.Id">
-                        <td>@item.Email</td>
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Kayıtlı Üyeler</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Profil</th>
+                            <th>Kullanıcı Adı</th>
+                            <th>E-Posta</th>
+                            <th>Telefon</th>
+                            <th>İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            string userPic = "/img/undraw_profile.svg";
+                            if (!string.IsNullOrEmpty(item.PhotoUrl))
+                            {
+                                userPic = item.PhotoUrl;
+                            }
 
-                        <td>@item.UserName</td>
-                        <td><span class="badge badge-info">@userRole</span></td>
-
-                        <td>
-                            <button class="btn btn-danger btn-sm btn-del-user" data-id="@item.Id">Sil</button>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+                            <tr id="row_@item.Id">
+                                <td style="width: 60px;">
+                                    <img src="@userPic" width="40" height="40" class="rounded-circle" style="object-fit:cover;">
+                                </td>
+                                <td>@item.UserName</td>
+                                <td>@item.Email</td>
+                                <td>@item.PhoneNumber</td>
+                                <td>
+                                    <button class="btn btn-danger btn-sm btn-delete-user" data-id="@item.Id">
+                                        <i class="fas fa-trash"></i> Sil
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 </div>
 
 @section Scripts {
     <script>
-        $(".btn-del-user").click(function(){
-            var id = $(this).data("id");
-            if(confirm("Kullanıcıyı silmek istiyor musunuz?")) {
-                // Controller'daki silme metodunun string ID kabul ettiğinden emin ol
-                $.post("/Admin/DeleteUser", { id: id }, function(r){
-                    if(r.success) {
-                        $("#u_" + id).remove();
-                    } else {
-                        alert("Silme işlemi başarısız veya yetkiniz yok.");
-                    }
-                });
-            }
+        $(document).ready(function () {
+            $(".btn-delete-user").click(function () {
+                var btn = $(this);
+                var id = btn.data("id");
+                var row = $("#row_" + id);
+
+                if (confirm("Bu kullanıcıyı kalıcı olarak silmek istiyor musunuz?")) {
+                    $.ajax({
+                        url: "/Admin/DeleteUser",
+                        type: "POST",
+                        data: { id: id },
+                        success: function (res) {
+                            if (res.success) {
+                                row.fadeOut(500, function () { $(this).remove(); });
+                            } else {
+                                alert(res.message);
+                            }
+                        },
+                        error: function () {
+                            alert("Sunucuyla iletişim hatası oluştu.");
+                        }
+                    });
+                }
+            });
         });
     </script>
 }

@@ -1,6 +1,5 @@
 ﻿using System;
-using System.ComponentModel.DataAnnotations; // Key için gerekebilir
-
+using System.ComponentModel.DataAnnotations;
 namespace _20241129402SoruCevapPortali.Models
 {
     public class UserReport
@@ -12,11 +11,8 @@ namespace _20241129402SoruCevapPortali.Models
         public string ReportedUserId { get; set; }
 
         public string Reason { get; set; }
-
-        // DEĞİŞİKLİK BURADA: string? yaptık (Boş olabilir)
         public string? Description { get; set; }
 
-        // DEĞİŞİKLİK BURADA: string? yaptık (Resim yüklemek zorunlu değil)
         public string? ScreenshotUrl { get; set; }
 
         public DateTime Date { get; set; } = DateTime.Now;

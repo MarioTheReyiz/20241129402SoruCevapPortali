@@ -32,8 +32,6 @@ namespace _20241129402SoruCevapPortali.Repositories
         {
             return _dbSet.ToList();
         }
-
-        // Burayı da object olarak güncelledik
         public T GetById(object id)
         {
             return _dbSet.Find(id);

@@ -9,12 +9,10 @@ namespace _20241129402SoruCevapPortali.Models
         public string Content { get; set; }
         public int QuestionId { get; set; }
         public DateTime Date { get; set; }
-
-        // İlişkiler
         public string UserId { get; set; }
 
         [ForeignKey("UserId")]
-        public virtual AppUser User { get; set; } // <-- EKSİK OLAN BU
+        public virtual AppUser User { get; set; }
 
         public int LikeCount { get; set; } = 0;
     }

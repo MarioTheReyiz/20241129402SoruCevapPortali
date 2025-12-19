@@ -1,5 +1,6 @@
 ﻿using _20241129402SoruCevapPortali.Models;
-using _20241129402SoruCevapPortali.Repositories; // Repository için gerekli
+using _20241129402SoruCevapPortali.Repositories;
+using _20241129402SoruCevapPortali.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -15,12 +16,8 @@ namespace _20241129402SoruCevapPortali.Controllers
     {
         private readonly UserManager<AppUser> _userManager;
         private readonly SignInManager<AppUser> _signInManager;
-
-        // İSTATİSTİKLER İÇİN GEREKLİ OLANLAR:
         private readonly IRepository<Question> _questionRepo;
         private readonly IRepository<Answer> _answerRepo;
-
-        // Constructor'da bunları istiyoruz
         public AuthController(
             UserManager<AppUser> userManager,
             SignInManager<AppUser> signInManager,
@@ -32,8 +29,6 @@ namespace _20241129402SoruCevapPortali.Controllers
             _questionRepo = q;
             _answerRepo = a;
         }
-
-        // --- YARDIMCI METOD: İstatistikleri Hesapla ---
         private void CalculateStats(string userId)
         {
             var soruSayisi = _questionRepo.GetAll().Count(x => x.UserId == userId);
@@ -45,8 +40,6 @@ namespace _20241129402SoruCevapPortali.Controllers
             ViewBag.CevapSayisi = cevapSayisi;
             ViewBag.ToplamBegeni = soruLikelari + cevapLikelari;
         }
-
-        // --- LOGIN ---
         [HttpGet]
         public IActionResult Login() => View();
 
@@ -71,34 +64,52 @@ namespace _20241129402SoruCevapPortali.Controllers
             ViewBag.ErrorMessage = "Geçersiz kullanıcı adı veya şifre.";
             return View();
         }
-
-        // --- REGISTER ---
         [HttpGet]
         public IActionResult Register() => View();
 
         [HttpPost]
-        public async Task<IActionResult> Register(AppUser p, string password)
+        public async Task<IActionResult> Register(RegisterViewModel p)
         {
-            var user = new AppUser
+            if (ModelState.IsValid)
             {
-                UserName = p.UserName,
-                Email = p.Email,
-                Name = p.Name,
-                Surname = p.Surname,
-                PhoneNumber = p.PhoneNumber,
-                PhotoUrl = "/img/undraw_profile.svg"
-            };
-            var result = await _userManager.CreateAsync(user, password);
-            if (result.Succeeded)
-            {
-                await _userManager.AddToRoleAsync(user, "User");
-                return RedirectToAction("Login");
+                var existingEmail = await _userManager.FindByEmailAsync(p.Email);
+                if (existingEmail != null)
+                {
+                    ModelState.AddModelError("", "Bu e-posta adresi zaten sistemde kayıtlı! Lütfen başka bir e-posta deneyin.");
+                    return View(p);
+                }
+                if (_userManager.Users.Any(u => u.PhoneNumber == p.PhoneNumber))
+                {
+                    ModelState.AddModelError("", "Bu telefon numarası başka bir üye tarafından kullanılıyor.");
+                    return View(p);
+                }
+                AppUser user = new AppUser()
+                {
+                    UserName = p.UserName,
+                    Email = p.Email,
+                    PhoneNumber = p.PhoneNumber,
+                    PhotoUrl = "/img/undraw_profile.svg"
+                };
+                var result = await _userManager.CreateAsync(user, p.Password);
+
+                if (result.Succeeded)
+                {
+                    await _userManager.AddToRoleAsync(user, "User");
+                    return RedirectToAction("Login");
+                }
+                else
+                {
+                    foreach (var item in result.Errors)
+                    {
+                        if (item.Code == "DuplicateUserName")
+                            ModelState.AddModelError("", "Bu kullanıcı adı zaten alınmış.");
+                        else
+                            ModelState.AddModelError("", item.Description);
+                    }
+                }
             }
-            foreach (var item in result.Errors) ModelState.AddModelError("", item.Description);
             return View(p);
         }
-
-        // --- LOGOUT ---
         public async Task<IActionResult> Logout()
         {
             await _signInManager.SignOutAsync();
@@ -106,14 +117,11 @@ namespace _20241129402SoruCevapPortali.Controllers
         }
 
         public IActionResult AccessDenied() => View();
-
-        // --- PROFİL DÜZENLEME ---
         [Authorize]
         [HttpGet]
         public async Task<IActionResult> EditProfile()
         {
             var user = await _userManager.GetUserAsync(User);
-            // Sayfa açılırken istatistikleri hesapla
             CalculateStats(user.Id);
             return View(user);
         }
@@ -125,7 +133,6 @@ namespace _20241129402SoruCevapPortali.Controllers
             var user = await _userManager.GetUserAsync(User);
             if (user != null)
             {
-                // Hata olursa sayfaya geri döneceğiz, o yüzden istatistikleri yine hesapla
                 CalculateStats(user.Id);
 
                 if (user.UserName != model.UserName)
@@ -171,8 +178,6 @@ namespace _20241129402SoruCevapPortali.Controllers
             }
             return View(user);
         }
-
-        // --- ŞİFRE SIFIRLAMA ---
         [HttpGet]
         public IActionResult ForgotPassword() => View();
 
@@ -187,7 +192,7 @@ namespace _20241129402SoruCevapPortali.Controllers
             TempData["ResetCode"] = code;
             TempData["ResetEmail"] = email;
 
-            ViewBag.TestCode = code; // Test amaçlı
+            ViewBag.TestCode = code;
             return RedirectToAction("VerifyCode");
         }
 

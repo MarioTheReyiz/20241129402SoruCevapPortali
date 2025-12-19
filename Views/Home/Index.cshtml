@@ -4,7 +4,6 @@
 
 @{
     ViewData["Title"] = "OyunForum Akışı";
-    // ARTIK SADECE İSİM DEĞİL, TÜM KULLANICI NESNESİNİ ALIYORUZ (Badge ve Level için)
     var users = ViewBag.Users as Dictionary<string, _20241129402SoruCevapPortali.Models.AppUser>;
 }
 
@@ -84,11 +83,7 @@
         @foreach (var item in Model)
         {
             var category = CatRepo.GetById(item.CategoryId);
-
-            // KULLANICI BİLGİLERİNİ GÜVENLİ ŞEKİLDE ÇEKME
             var user = (users != null && users.ContainsKey(item.UserId)) ? users[item.UserId] : null;
-
-            // Varsayılan Değerler
             string yazarAdi = user?.UserName ?? "Gizli Üye";
             string yazarResmi = user?.PhotoUrl ?? "/img/undraw_profile.svg";
             string yazarRozet = user?.Badge ?? "Çaylak";

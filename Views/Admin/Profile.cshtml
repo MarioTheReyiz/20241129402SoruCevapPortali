@@ -6,8 +6,6 @@
 @{
     ViewData["Title"] = "Profilim";
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
-
-    // Kullanıcının rolünü bulalım (göstermek için)
     var roles = await UserManager.GetRolesAsync(Model);
     var myRole = roles.FirstOrDefault() ?? "Standart Kullanıcı";
 }
@@ -19,7 +17,7 @@
                 <h6 class="m-0 font-weight-bold text-primary">Profil Bilgileri</h6>
             </div>
             <div class="card-body">
-                @* Form post edilince Controller'daki UpdateProfile metoduna gidecek *@
+                @* *@
                 <form method="post" action="/Admin/UpdateProfile" enctype="multipart/form-data">
 
                     <input type="hidden" name="Id" value="@Model.Id" />

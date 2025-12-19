@@ -3,66 +3,92 @@
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
 }
 
-<div class="row justify-content-center">
-    <div class="col-md-8">
-        <div class="card shadow mb-4">
-            <div class="card-header py-3 bg-primary">
-                <h6 class="m-0 font-weight-bold text-white">
-                    <i class="fas fa-paper-plane mr-2"></i>Yeni Bildirim Oluştur
-                </h6>
-            </div>
-            <div class="card-body">
-                @if (Context.Request.Query["success"] == "true")
-                {
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        <strong>Başarılı!</strong> Bildirim gönderildi.
-                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<style>
+    .select2-container .select2-selection--single {
+        height: 38px !important;
+        border: 1px solid #d1d3e2;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 38px;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 36px;
+    }
+</style>
+
+<div class="container-fluid">
+    <h1 class="h3 mb-4 text-gray-800">Bildirim & Duyuru Gönder</h1>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 bg-gradient-primary text-white">
+                    <h6 class="m-0 font-weight-bold"><i class="fas fa-paper-plane"></i> Yeni Bildirim Oluştur</h6>
+                </div>
+                <div class="card-body">
+                    <form asp-action="SendNotification" method="post">
+
+                        <div class="form-group" id="roleGroup">
+                            <label class="font-weight-bold text-dark">Hedef Kitle (Toplu Gönderim)</label>
+                            <select name="targetRole" id="targetRoleSelect" class="form-control">
+                                <option value="All">Herkese Gönder (Tüm Site)</option>
+                                <option value="User">Sadece Üyelere</option>
+                                <option value="Admin">Sadece Yöneticilere (Admin)</option>
+                                <option value="Moderator">Sadece Moderatörlere</option>
+                            </select>
+                            <small class="text-muted">Genel duyurular için burayı kullanın.</small>
+                        </div>
+
+                        <div class="text-center my-3 text-gray-500 font-weight-bold">- VEYA -</div>
+
+                        <div class="form-group">
+                            <label class="font-weight-bold text-dark">Belirli Bir Kişiye Gönder</label>
+                            @Html.DropDownList("specificUserId", (IEnumerable<SelectListItem>)ViewBag.UserList, new { @class = "form-control select2-user", @id = "specificUserSelect" })
+
+                            <small class="text-danger mt-1 d-block">
+                                <i class="fas fa-info-circle"></i> Buradan bir kişi seçerseniz, yukarıdaki kitle seçimi yok sayılır.
+                            </small>
+                        </div>
+
+                        <hr />
+
+                        <div class="form-group mt-4">
+                            <label class="font-weight-bold">Mesajınız</label>
+                            <textarea name="message" class="form-control" rows="5" placeholder="İletmek istediğiniz mesajı buraya yazın..." required></textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn-success btn-block btn-lg font-weight-bold shadow">
+                            <i class="fas fa-check-circle mr-2"></i> Bildirimi Gönder
                         </button>
-                    </div>
-                }
-
-                <form method="post" action="/Admin/SendNotification">
-
-                    <div class="form-group">
-                        <label class="font-weight-bold">Mesajınız:</label>
-                        <textarea name="message" class="form-control" rows="4" placeholder="Buraya mesajınızı yazın..." required></textarea>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="font-weight-bold">Kime Gönderilsin?</label>
-                        <select name="targetType" class="form-control" id="targetSelect">
-                            <option value="All">📢 Herkese (Tüm Kullanıcılar)</option>
-                            <option value="Admin">🛡️ Sadece Yöneticilere</option>
-                            <option value="Moderator">cop️ Sadece Moderatörlere</option>
-                            <option value="SpecificUser">👤 Belirli Bir Kişiye</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group" id="userSelectDiv" style="display:none;">
-                        <label class="font-weight-bold">Kullanıcı Seçin:</label>
-                        @Html.DropDownList("specificUserId", (SelectList)ViewBag.Users, "Bir Kullanıcı Seçiniz...", new { @class = "form-control" })
-                    </div>
-
-                    <hr />
-                    <button type="submit" class="btn btn-success btn-block btn-lg">
-                        <i class="fas fa-check mr-2"></i> Gönder
-                    </button>
-                </form>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 @section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
     <script>
-        // Hedef seçimine göre kullanıcı listesini aç/kapa
-        $("#targetSelect").change(function() {
-            if ($(this).val() == "SpecificUser") {
-                $("#userSelectDiv").slideDown();
-            } else {
-                $("#userSelectDiv").slideUp();
-            }
+        $(document).ready(function() {
+            $('.select2-user').select2({
+                placeholder: "Kullanıcı adı veya e-posta yazarak arayın...",
+                allowClear: true,
+                width: '100%'
+            });
+            $('#specificUserSelect').on('change', function() {
+                if($(this).val()) {
+                    $('#targetRoleSelect').prop('disabled', true);
+                    $('#roleGroup').css('opacity', '0.5');
+                } else {
+                    $('#targetRoleSelect').prop('disabled', false);
+                    $('#roleGroup').css('opacity', '1');
+                }
+            });
         });
     </script>
 }

@@ -37,14 +37,11 @@ namespace _20241129402SoruCevapPortali.Controllers
             p.Date = DateTime.Now;
             p.IsReviewed = false;
 
-            // Ekran Görüntüsü Yükleme
             if (ScreenshotFile != null)
             {
                 var ext = Path.GetExtension(ScreenshotFile.FileName);
                 var newName = Guid.NewGuid() + ext;
                 var path = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/img/reports/", newName);
-
-                // Klasör yoksa oluştur
                 Directory.CreateDirectory(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/img/reports/"));
 
                 using (var stream = new FileStream(path, FileMode.Create))

@@ -2,15 +2,28 @@
 @{
     ViewData["Title"] = "Forum Detayı";
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
+
     var answers = ViewBag.Answers as List<_20241129402SoruCevapPortali.Models.Answer>;
+    var users = ViewBag.Users as Dictionary<string, _20241129402SoruCevapPortali.Models.AppUser>;
+    string questionerName = "Bilinmiyor";
+    string questionerPic = "/img/undraw_profile.svg";
+    if (users != null && users.ContainsKey(Model.UserId))
+    {
+        var qUser = users[Model.UserId];
+        questionerName = qUser.UserName;
+        if (!string.IsNullOrEmpty(qUser.PhotoUrl)) { questionerPic = qUser.PhotoUrl; }
+    }
 }
 
 <div class="container-fluid">
 
     <div class="card shadow mb-4 border-left-primary">
         <div class="card-header py-3 d-flex justify-content-between align-items-center">
-            <h6 class="m-0 font-weight-bold text-primary">@Model.Title</h6>
-            <span class="badge bg-secondary">@(Model.User != null ? Model.User.UserName : "Bilinmiyor")</span>
+            <div class="d-flex align-items-center">
+                <img src="@questionerPic" class="rounded-circle mr-2" style="width:40px; height:40px; object-fit:cover;">
+                <h6 class="m-0 font-weight-bold text-primary">@Model.Title</h6>
+            </div>
+            <span class="badge bg-secondary">@questionerName</span>
         </div>
         <div class="card-body">
             <p class="card-text" style="font-size: 1.1rem;">@Model.Content</p>
@@ -44,11 +57,20 @@
                         <tbody>
                             @foreach (var ans in answers)
                             {
+                                string ansName = "Silinmiş Üye";
+                                string ansPic = "/img/undraw_profile.svg";
+                                if (users != null && users.ContainsKey(ans.UserId))
+                                {
+                                    var aUser = users[ans.UserId];
+                                    ansName = aUser.UserName;
+                                    if (!string.IsNullOrEmpty(aUser.PhotoUrl)) { ansPic = aUser.PhotoUrl; }
+                                }
+
                                 <tr id="ans_@ans.Id">
-                                    <td style="width: 15%;">
+                                    <td style="width: 20%;">
                                         <div class="d-flex align-items-center">
-                                            <img class="img-profile rounded-circle mr-2" style="width:30px" src="~/img/undraw_profile.svg">
-                                            <span class="font-weight-bold">@(ans.User != null ? ans.User.UserName : "Silinmiş Üye")</span>
+                                            <img class="img-profile rounded-circle mr-2" style="width:35px; height:35px; object-fit:cover;" src="@ansPic">
+                                            <span class="font-weight-bold">@ansName</span>
                                         </div>
                                     </td>
                                     <td>@ans.Content</td>
@@ -77,7 +99,6 @@
 @section Scripts {
     <script>
         $(document).ready(function () {
-            // Cevap Silme AJAX İşlemi
             $(".btn-delete-ans").click(function () {
                 var id = $(this).data("id");
                 var row = $("#ans_" + id);
