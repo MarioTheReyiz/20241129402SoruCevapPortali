@@ -306,5 +306,10 @@ namespace _20241129402SoruCevapPortali.Controllers
             if (ans != null) _answerRepo.Delete(ans);
             return RedirectToAction("Answers");
         }
+        public async Task<IActionResult> Profile()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            return View(user);
+        }
     }
 }

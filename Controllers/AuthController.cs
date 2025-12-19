@@ -229,5 +229,11 @@ namespace _20241129402SoruCevapPortali.Controllers
             }
             return View();
         }
+        [Authorize] // Sadece giriş yapanlar görebilsin
+        public async Task<IActionResult> Profile()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            return View(user);
+        }
     }
 }
