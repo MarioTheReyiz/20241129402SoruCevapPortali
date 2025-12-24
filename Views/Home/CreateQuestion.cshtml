@@ -26,6 +26,15 @@
                         <textarea name="Content" rows="6" class="form-control bg-secondary text-white border-0" required placeholder="Detayları buraya yaz..."></textarea>
                     </div>
 
+                    <div class="form-group">
+                        <label asp-for="ImageUrl" class="control-label">Resim URL (İsteğe Bağlı)</label>
+                        <input asp-for="ImageUrl" class="form-control" placeholder="https://ornek.com/resim.jpg" />
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="VideoUrl" class="control-label">Video URL (İsteğe Bağlı)</label>
+                        <input asp-for="VideoUrl" class="form-control" placeholder="https://youtube.com/..." />
+                    </div>
+
                     <button type="submit" class="btn btn-danger w-100 fw-bold">
                         <i class="fas fa-paper-plane"></i> Yayınla
                     </button>

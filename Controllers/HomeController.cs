@@ -19,6 +19,7 @@ namespace _20241129402SoruCevapPortali.Controllers
         private readonly IRepository<Notification> _notificationRepo;
         private readonly IRepository<Like> _likeRepo;
         private readonly UserManager<AppUser> _userManager;
+
         public HomeController(
             IRepository<Question> q,
             IRepository<Category> c,
@@ -35,6 +36,7 @@ namespace _20241129402SoruCevapPortali.Controllers
             _notificationRepo = n;
             _likeRepo = l;
         }
+
         public IActionResult Index(string search, int? categoryId, string sortOrder)
         {
             ViewBag.Categories = new SelectList(_categoryRepo.GetAll(), "Id", "Name");
@@ -72,6 +74,7 @@ namespace _20241129402SoruCevapPortali.Controllers
 
             return View(resultList);
         }
+
         public IActionResult Details(int id)
         {
             var question = _questionRepo.GetById(id);
@@ -84,6 +87,7 @@ namespace _20241129402SoruCevapPortali.Controllers
 
             return View(question);
         }
+
         [Authorize]
         public IActionResult CreateQuestion()
         {
@@ -95,6 +99,7 @@ namespace _20241129402SoruCevapPortali.Controllers
         [Authorize]
         public async Task<IActionResult> CreateQuestion(Question p)
         {
+            // Not: View tarafýnda ImageUrl ve VideoUrl inputlarý varsa, 'p' nesnesi bunlarý otomatik alýr.
             var user = await _userManager.GetUserAsync(User);
             p.UserId = user.Id;
             p.CreatedDate = DateTime.Now;
@@ -108,7 +113,8 @@ namespace _20241129402SoruCevapPortali.Controllers
 
         [HttpPost]
         [Authorize]
-        public async Task<IActionResult> AddAnswer(int questionId, string content)
+        // Güncelleme: Resim ve Video URL parametreleri eklendi
+        public async Task<IActionResult> AddAnswer(int questionId, string content, string imageUrl, string videoUrl)
         {
             var user = await _userManager.GetUserAsync(User);
             if (user != null && !string.IsNullOrEmpty(content))
@@ -118,7 +124,10 @@ namespace _20241129402SoruCevapPortali.Controllers
                     QuestionId = questionId,
                     Content = content,
                     UserId = user.Id,
-                    Date = DateTime.Now
+                    Date = DateTime.Now,
+                    // Eðer modeller güncellendiyse bu alanlar veritabanýna kaydedilir
+                    ImageUrl = imageUrl,
+                    VideoUrl = videoUrl
                 };
                 _answerRepo.Add(answer);
                 await AddXp(user.Id, 10);
@@ -152,6 +161,7 @@ namespace _20241129402SoruCevapPortali.Controllers
             }
             return RedirectToAction("Details", new { id = id });
         }
+
         [Authorize]
         public async Task<IActionResult> LikeQuestion(int id)
         {
@@ -195,6 +205,7 @@ namespace _20241129402SoruCevapPortali.Controllers
             }
             return Redirect(Request.Headers["Referer"].ToString());
         }
+
         [Authorize]
         public async Task<IActionResult> Notifications()
         {
@@ -250,6 +261,7 @@ namespace _20241129402SoruCevapPortali.Controllers
         }
 
         public IActionResult Privacy() => View();
+
         private async Task AddXp(string userId, int amount)
         {
             var user = await _userManager.FindByIdAsync(userId);

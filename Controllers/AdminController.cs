@@ -159,7 +159,7 @@ namespace _20241129402SoruCevapPortali.Controllers
             var users = _userManager.Users.ToDictionary(u => u.Id, u => u);
             ViewBag.Users = users;
 
-            return View(question);
+            return View(question);      
         }
 
         public async Task<IActionResult> DeleteQuestion(int id)

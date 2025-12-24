@@ -3,6 +3,7 @@
     ViewData["Title"] = Model.Title;
     var users = ViewBag.Users as Dictionary<string, _20241129402SoruCevapPortali.Models.AppUser>;
     var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
     (string Badge, int Level, int Percent, int NextXp, string Photo, string Name) GetUserStats(string userId)
     {
         var u = (users != null && users.ContainsKey(userId)) ? users[userId] : null;
@@ -73,6 +74,22 @@
                     </div>
 
                     <p class="card-text fs-5">@Model.Content</p>
+
+                    @if (!string.IsNullOrEmpty(Model.ImageUrl))
+                    {
+                        <div class="mb-3">
+                            <img src="@Model.ImageUrl" class="img-fluid rounded border border-secondary" style="max-height: 400px;" alt="Soru Görseli" />
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(Model.VideoUrl))
+                    {
+                        <div class="mb-3">
+                            <a href="@Model.VideoUrl" target="_blank" class="btn btn-outline-danger">
+                                <i class="fas fa-play-circle"></i> İlgili Videoyu İzle
+                            </a>
+                        </div>
+                    }
                 </div>
             </div>
 
@@ -114,9 +131,26 @@
                             </div>
                             <small class="text-white-50">@ans.Date.ToString("g")</small>
                         </div>
+
                         <p class="mb-2">@ans.Content</p>
 
-                        <div class="d-flex justify-content-end align-items-center">
+                        @if (!string.IsNullOrEmpty(ans.ImageUrl))
+                        {
+                            <div class="mb-2">
+                                <img src="@ans.ImageUrl" class="img-fluid rounded border border-dark" style="max-height: 200px;" alt="Cevap Görseli" />
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrEmpty(ans.VideoUrl))
+                        {
+                            <div class="mb-2">
+                                <a href="@ans.VideoUrl" target="_blank" class="text-warning text-decoration-none small">
+                                    <i class="fas fa-video"></i> Video Bağlantısı
+                                </a>
+                            </div>
+                        }
+
+                        <div class="d-flex justify-content-end align-items-center mt-2">
                             @if (User.Identity.IsAuthenticated && currentUserId != ans.UserId)
                             {
                                 <a href="/Report/Create?reportedUserId=@ans.UserId" class="text-white-50 text-decoration-none small me-3" title="Raporla">
@@ -138,10 +172,27 @@
     {
         <div class="card bg-dark border-secondary mt-4 mb-5">
             <div class="card-body">
-                <h5 class="text-white">Bir cevap yaz...</h5>
+                <h5 class="text-white mb-3"><i class="fas fa-pen"></i> Bir cevap yaz...</h5>
                 <form action="/Home/AddAnswer" method="post">
                     <input type="hidden" name="questionId" value="@Model.Id" />
+
                     <textarea name="content" class="form-control bg-black text-white border-secondary mb-3" rows="3" placeholder="Fikriniz nedir?"></textarea>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-secondary text-white border-secondary"><i class="fas fa-image"></i></span>
+                                <input type="text" name="imageUrl" class="form-control bg-black text-white border-secondary" placeholder="Resim URL (İsteğe bağlı)">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-secondary text-white border-secondary"><i class="fas fa-video"></i></span>
+                                <input type="text" name="videoUrl" class="form-control bg-black text-white border-secondary" placeholder="Video URL (İsteğe bağlı)">
+                            </div>
+                        </div>
+                    </div>
+
                     <button class="btn btn-danger px-4 fw-bold"><i class="fas fa-paper-plane"></i> Gönder</button>
                 </form>
             </div>

@@ -20,5 +20,7 @@ namespace _20241129402SoruCevapPortali.Models
         public virtual AppUser User { get; set; } 
 
         public int LikeCount { get; set; } = 0;
+        public string? ImageUrl { get; set; } // Resim Linki
+        public string? VideoUrl { get; set; }
     }
 }
