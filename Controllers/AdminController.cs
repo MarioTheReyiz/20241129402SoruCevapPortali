@@ -4,10 +4,11 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Collections.Generic;
 
 namespace _20241129402SoruCevapPortali.Controllers
 {
@@ -26,6 +27,7 @@ namespace _20241129402SoruCevapPortali.Controllers
         private readonly IRepository<TicketMessage> _messageRepo;
         private readonly IRepository<UserReport> _reportRepo;
         private readonly IRepository<Notification> _notificationRepo;
+        private readonly AppDbContext _context;
 
         public AdminController(
             UserManager<AppUser> userManager,
@@ -37,7 +39,8 @@ namespace _20241129402SoruCevapPortali.Controllers
             IRepository<SupportTicket> ticketRepo,
             IRepository<TicketMessage> messageRepo,
             IRepository<UserReport> reportRepo,
-            IRepository<Notification> notificationRepo
+            IRepository<Notification> notificationRepo,
+            AppDbContext context
             )
         {
             _userManager = userManager;
@@ -50,6 +53,7 @@ namespace _20241129402SoruCevapPortali.Controllers
             _messageRepo = messageRepo;
             _reportRepo = reportRepo;
             _notificationRepo = notificationRepo;
+            _context = context;
         }
         public IActionResult Index()
         {
@@ -77,29 +81,64 @@ namespace _20241129402SoruCevapPortali.Controllers
         [HttpPost]
         public async Task<IActionResult> DeleteUser(string id)
         {
-            var currentUser = await _userManager.GetUserAsync(User);
-            if (currentUser.Id == id)
+            // --- GÜVENLİK KONTROLÜ BAŞLANGIÇ ---
+            // Şu an sisteme giriş yapmış olan kullanıcının ID'sini alıyoruz
+            var currentUserId = _userManager.GetUserId(User);
+
+            // Eğer silinmeye çalışılan ID (id), giriş yapan kişinin ID'si (currentUserId) ise DUR.
+            if (id == currentUserId)
             {
                 return Json(new { success = false, message = "Kendi hesabınızı silemezsiniz!" });
             }
+            // ------------------------------------
 
-            var targetUser = await _userManager.FindByIdAsync(id);
-            if (targetUser == null)
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null)
             {
                 return Json(new { success = false, message = "Kullanıcı bulunamadı." });
             }
-            if (await _userManager.IsInRoleAsync(targetUser, "Admin"))
+
+            try
             {
-                return Json(new { success = false, message = "Diğer yöneticileri silemezsiniz!" });
+                // 1. Cevapları Sil
+                var answers = _context.Answers.Where(x => x.UserId == id).ToList();
+                _context.Answers.RemoveRange(answers);
+
+                // 2. Soruları Sil
+                var questions = _context.Questions.Where(x => x.UserId == id).ToList();
+                _context.Questions.RemoveRange(questions);
+
+                // 3. Beğenileri Sil
+                var likes = _context.Likes.Where(x => x.UserId == id).ToList();
+                _context.Likes.RemoveRange(likes);
+
+                // 4. Bildirimleri Sil (Model adı: TargetUserId)
+                var notifications = _context.Notifications.Where(x => x.TargetUserId == id).ToList();
+                _context.Notifications.RemoveRange(notifications);
+
+                // 5. Logları Sil (Model adı: Username)
+                var logs = _context.Logs.Where(x => x.Username == user.UserName).ToList();
+                _context.Logs.RemoveRange(logs);
+
+                // Değişiklikleri Kaydet
+                await _context.SaveChangesAsync();
+
+                // --- KULLANICIYI SİL ---
+                var result = await _userManager.DeleteAsync(user);
+
+                if (result.Succeeded)
+                {
+                    return Json(new { success = true, message = "Kullanıcı ve tüm verileri başarıyla silindi." });
+                }
+                else
+                {
+                    string errors = string.Join(" ", result.Errors.Select(e => e.Description));
+                    return Json(new { success = false, message = "Silinemedi: " + errors });
+                }
             }
-            var result = await _userManager.DeleteAsync(targetUser);
-            if (result.Succeeded)
+            catch (Exception ex)
             {
-                return Json(new { success = true, message = "Kullanıcı silindi." });
-            }
-            else
-            {
-                return Json(new { success = false, message = "Silme işlemi sırasında hata oluştu." });
+                return Json(new { success = false, message = "Hata oluştu: " + ex.Message });
             }
         }
         public IActionResult Questions()
@@ -123,10 +162,33 @@ namespace _20241129402SoruCevapPortali.Controllers
             return View(question);
         }
 
-        public IActionResult DeleteQuestion(int id)
+        public async Task<IActionResult> DeleteQuestion(int id)
         {
-            var q = _questionRepo.GetById(id);
-            if (q != null) _questionRepo.Delete(q);
+            // 1. Soruyu Bul
+            var question = await _context.Questions.FindAsync(id);
+            if (question == null)
+            {
+                return NotFound();
+            }
+
+            // 2. SORUYA AİT CEVAPLARI SİL (Önce cevaplar, sonra soru)
+            var answers = _context.Answers.Where(x => x.QuestionId == id).ToList();
+            if (answers.Any())
+            {
+                _context.Answers.RemoveRange(answers);
+            }
+
+            // 3. Varsa Beğenileri Sil (Eğer Like tablon varsa ve QuestionId tutuyorsa)
+            // var likes = _context.Likes.Where(x => x.QuestionId == id).ToList();
+            // _context.Likes.RemoveRange(likes);
+
+            // 4. Soruyu Sil
+            _context.Questions.Remove(question);
+
+            // 5. Değişiklikleri Kaydet
+            await _context.SaveChangesAsync();
+
+            // 6. JSON yerine Listeye Geri Dön (Sayfa yenilensin)
             return RedirectToAction("Questions");
         }
 

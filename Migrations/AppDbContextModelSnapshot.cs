@@ -581,7 +581,7 @@ namespace _20241129402SoruCevapPortali.Migrations
 
             modelBuilder.Entity("_20241129402SoruCevapPortali.Models.Question", b =>
                 {
-                    b.HasOne("_20241129402SoruCevapPortali.Models.Category", null)
+                    b.HasOne("_20241129402SoruCevapPortali.Models.Category", "Category")
                         .WithMany("Questions")
                         .HasForeignKey("CategoryId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -592,6 +592,8 @@ namespace _20241129402SoruCevapPortali.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Category");
 
                     b.Navigation("User");
                 });

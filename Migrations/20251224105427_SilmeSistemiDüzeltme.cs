@@ -5,7 +5,7 @@
 namespace _20241129402SoruCevapPortali.Migrations
 {
     /// <inheritdoc />
-    public partial class raporvedestek : Migration
+    public partial class SilmeSistemiDüzeltme : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

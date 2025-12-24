@@ -12,8 +12,8 @@ using _20241129402SoruCevapPortali.Models;
 namespace _20241129402SoruCevapPortali.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251218160045_raporvedestek")]
-    partial class raporvedestek
+    [Migration("20251224101028_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -495,7 +495,6 @@ namespace _20241129402SoruCevapPortali.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Description")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsReviewed")
@@ -514,7 +513,6 @@ namespace _20241129402SoruCevapPortali.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ScreenshotUrl")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");

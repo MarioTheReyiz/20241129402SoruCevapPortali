@@ -17,7 +17,11 @@ namespace _20241129402SoruCevapPortali.Models
                 var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
                 var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
                 var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+
+                // Veritabanı yoksa oluştur
                 context.Database.Migrate();
+
+                // 1. Rolleri Kontrol Et ve Oluştur
                 if (!await roleManager.RoleExistsAsync("Admin"))
                 {
                     await roleManager.CreateAsync(new IdentityRole("Admin"));
@@ -26,9 +30,14 @@ namespace _20241129402SoruCevapPortali.Models
                 {
                     await roleManager.CreateAsync(new IdentityRole("User"));
                 }
-                if (!context.Users.Any())
+
+                // 2. KULLANICI KONTROLÜNÜ BURADA DEĞİŞTİRDİK
+                // Veritabanında hiç kullanıcı yok mu diye bakmak yerine, "admin" isimli kullanıcı var mı diye bakıyoruz.
+                var adminUser = await userManager.FindByNameAsync("admin");
+
+                if (adminUser == null)
                 {
-                    var adminUser = new AppUser
+                    var newAdmin = new AppUser
                     {
                         UserName = "admin",
                         Email = "admin@portal.com",
@@ -37,13 +46,24 @@ namespace _20241129402SoruCevapPortali.Models
                         PhotoUrl = "/img/adminimage.jpg",
                         EmailConfirmed = true
                     };
-                    var result = await userManager.CreateAsync(adminUser, "123");
+
+                    var result = await userManager.CreateAsync(newAdmin, "Aa123456.");
 
                     if (result.Succeeded)
                     {
-                        await userManager.AddToRoleAsync(adminUser, "Admin");
+                        await userManager.AddToRoleAsync(newAdmin, "Admin");
+                    }
+                    else
+                    {
+                        // Hata varsa konsola yazdıralım ki neden oluşmadığını görelim (Şifre yetersizliği vb.)
+                        foreach (var error in result.Errors)
+                        {
+                            Console.WriteLine($"Admin oluşturma hatası: {error.Description}");
+                        }
                     }
                 }
+
+                // 3. Kategorileri Kontrol Et
                 if (!context.Categories.Any())
                 {
                     context.Categories.Add(new Category
